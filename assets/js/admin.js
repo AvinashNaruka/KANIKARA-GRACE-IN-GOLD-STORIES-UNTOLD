@@ -86,6 +86,21 @@ function compressImage(file, maxDim = 1400, quality = 0.82){
     reader.readAsDataURL(file);
   });
 }
+async function uploadProductVideo(input){
+  const file = input.files?.[0];
+  if (!file) return;
+  const status = $('#uploadStatus');
+  status.textContent = `Uploading video…`;
+  try {
+    const path = `video-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]+/g,'-')}`;
+    const { error } = await sb.storage.from('product-images').upload(path, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data } = sb.storage.from('product-images').getPublicUrl(path);
+    $('#productVideo').value = data.publicUrl;
+    status.textContent = 'Video uploaded ✓';
+  } catch (err) { toast(`Could not upload video: ${err.message || 'unknown error'}`, 'err'); }
+  input.value = '';
+}
 async function uploadProductImages(input){
   const files = Array.from(input.files || []);
   if (!files.length) return;
@@ -140,6 +155,7 @@ function editProduct(id){
   $('#productPurity').value = p.purity || '';
   $('#productWeight').value = p.weight_grams || '';
   $('#productImages').value = (p.images||[]).join(', ');
+    $('#productVideo').value = p.video_url || '';
   renderImgPreview(p.images||[]);
   $('#productDesc').value = p.description || '';
   $('#productTags').value = (p.tags||[]).join(', ');
@@ -162,6 +178,7 @@ async function saveProduct(e){
     purity: $('#productPurity').value,
     weight_grams: $('#productWeight').value ? Number($('#productWeight').value) : null,
     images: $('#productImages').value.split(',').map(s=>s.trim()).filter(Boolean),
+            video_url: $('#productVideo').value.trim() || null,
     description: $('#productDesc').value,
     tags: $('#productTags').value.split(',').map(s=>s.trim()).filter(Boolean),
     is_featured: $('#productFeatured').checked,
