@@ -695,6 +695,11 @@
         <div id="productImgPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
       </div>
       <div class="field"><label>Image URLs (comma separated — auto-filled by upload above, or paste your own)</label><input id="productImages" placeholder="https://…, https://…" oninput="renderImgPreview(this.value.split(',').map(s=>s.trim()).filter(Boolean))"></div>
+       <div class="field">
+  <label>Product Video (optional, max ~20MB, mp4 recommended)</label>
+  <input type="file" accept="video/*" onchange="uploadProductVideo(this)" style="border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
+  <input id="productVideo" placeholder="https://… (auto-filled after upload)" style="margin-top:8px">
+</div>
       <div class="field"><label>Description</label><textarea id="productDesc" rows="3"></textarea></div>
       <div class="field">
         <label>Tags (comma separated — powers Shop filters)</label>
