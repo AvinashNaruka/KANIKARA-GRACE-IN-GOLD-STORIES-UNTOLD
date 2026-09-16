@@ -787,7 +787,7 @@ async function saveProfile(e){
   } catch (err) { toast(err.message||'Could not update profile','err'); }
 }
 
-function generateInvoicePDF(order){
+function generateInvoicePDF(order, isAdmin=false){
   if (typeof window.jspdf === 'undefined') { toast('PDF library still loading — try again in a moment', 'err'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -824,12 +824,13 @@ function generateInvoicePDF(order){
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
   doc.text([`Method: ${(order.payment_method||'—').toUpperCase()}`, `Status: ${(order.payment_status||'—').toUpperCase()}`], 130, 52);
 
-  const rows = (order.order_items || []).map(i => [
-    i.product_name || '', String(i.quantity), `Rs. ${Number(i.unit_price).toLocaleString('en-IN')}`, `Rs. ${Number(i.total_price).toLocaleString('en-IN')}`
-  ]);
-  doc.autoTable({
+    const rows = (order.order_items || []).map(i => isAdmin
+    ? [i.products?.serial_no ? '#'+i.products.serial_no : '—', i.product_name || '', String(i.quantity), `Rs. ${Number(i.unit_price).toLocaleString('en-IN')}`, `Rs. ${Number(i.total_price).toLocaleString('en-IN')}`]
+    : [i.product_name || '', String(i.quantity), `Rs. ${Number(i.unit_price).toLocaleString('en-IN')}`, `Rs. ${Number(i.total_price).toLocaleString('en-IN')}`]
+  );
+    doc.autoTable({
     startY: 74,
-    head: [['Item', 'Qty', 'Unit Price', 'Total']],
+    head: [isAdmin ? ['Sr.No','Item', 'Qty', 'Unit Price', 'Total'] : ['Item', 'Qty', 'Unit Price', 'Total']],
     body: rows,
     theme: 'plain',
     headStyles: { fillColor: ink, textColor: [247,242,231], fontStyle: 'bold' },
