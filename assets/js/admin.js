@@ -43,6 +43,7 @@ async function loadAdminProducts(){
   window.__adminCats = cats;
   $('#adminProductsTbl').innerHTML = products.map(p=>`
     <tr>
+      <td>#${p.serial_no||'—'}</td>
       <td><img src="${esc((p.images||[])[0]||placeholderImg())}" style="width:42px;height:42px;object-fit:cover"></td>
       <td>${esc(p.name)}</td>
       <td>${esc(p.categories?.name||'—')}</td>
