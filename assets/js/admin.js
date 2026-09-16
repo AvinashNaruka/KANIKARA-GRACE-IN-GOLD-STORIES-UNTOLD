@@ -243,7 +243,7 @@ async function loadAdminOrders(){
           ${['pending','confirmed','processing','packed','shipped','out_for_delivery','delivered','cancelled','returned','refunded'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
-      <td><button class="action-btn" onclick="generateInvoicePDF((window.__adminOrders||[]).find(x=>x.id==='${o.id}'))">📄 Download</button></td>
+      <td><button class="action-btn" onclick="generateInvoicePDF((window.__adminOrders||[]).find(x=>x.id==='${o.id}'true))">📄 Download</button></td>
     </tr>`).join('') || `<tr><td colspan="7">No orders yet</td></tr>`;
 }
 async function adminUpdateOrderStatus(id, status){
