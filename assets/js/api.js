@@ -292,7 +292,7 @@ const api = {
   },
 
   async adminAllOrders(){
-    const { data, error } = await sb.from('orders').select('*, order_items(*), profiles(full_name, phone)').order('created_at', { ascending: false });
+    const { data, error } = await sb.from('orders').select('*, order_items(*, products(serial_no)), profiles(full_name, phone)').order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   },
