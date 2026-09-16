@@ -409,6 +409,7 @@ async function loadProductPage(slug){
   if (!p) { $('#pdContent').innerHTML = `<p>Product not found.</p>`; return; }
   state.currentProduct = p;
   const imgs = (p.images && p.images.length) ? p.images : [placeholderImg()];
+    const videoHtml = p.video_url ? `<video src="${esc(p.video_url)}" controls style="width:100%;margin-top:10px;border:1px solid var(--line-light)"></video>` : '';
   const [reviews, related] = await Promise.all([
     api.getProductReviews(p.id).catch(()=>[]),
     p.category_id ? api.getRelatedProducts(p.category_id, p.id).catch(()=>[]) : []
@@ -417,7 +418,8 @@ async function loadProductPage(slug){
     <div class="pd">
       <div class="pd-gallery reveal in">
         <div class="main-img"><img id="pdMainImg" src="${esc(imgs[0])}" alt="${esc(p.name)}"></div>
-        ${imgs.length>1 ? `<div class="pd-thumbs">${imgs.map((im,i)=>`<img src="${esc(im)}" class="${i===0?'active':''}" onclick="setPdImg(this,'${esc(im)}')">`).join('')}</div>` : ''}
+        ${imgs.length>1 ? `<div class="pd-thumbs">${imgs.map((im,i)=>`<img src="${esc(im)}" class="${i===0?'active':''}" onclick="setPdImg(this,'${esc(im)}')">`).join('')}
+                ${videoHtml}</div>` : ''}
       </div>
       <div class="pd-info reveal in">
         <div class="cat">${esc(p.categories?.name||'')}</div>
