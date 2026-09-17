@@ -990,6 +990,9 @@ async function boot(){
   const settingsJob = api.getSettings().then(s => {
     state.settings = s;
     if (s.announcement_text) $('#announceText').textContent = s.announcement_text;
+        if (s.store_address) $('#footAddress').textContent = s.store_address;
+    if (s.store_email) $('#footEmail').textContent = s.store_email;
+    if (s.store_phone) $('#footPhone').textContent = s.store_phone;
     const wa = (s.whatsapp_number || '').replace(/[^0-9]/g,'');
     if (wa) { $('#waFloat').href = `https://wa.me/${wa}?text=${encodeURIComponent('Hi! I have a question about a Kanikaara piece.')}`; $('#waFloat').classList.remove('hide'); }
   }).catch(e => console.error(e));
