@@ -218,14 +218,20 @@ function editCategory(id){
   $('#categoryFormId').value = c.id;
   $('#catName').value = c.name; $('#catIcon').value = c.icon||''; $('#catOrder').value = c.sort_order||0;
   $('#catActive').checked = c.is_active !== false;
+  $('#catImage').value = c.image_url || ''; $('#catParent').value = c.parent_id || '';
 }
 async function saveCategory(e){
   e.preventDefault();
   const name = $('#catName').value.trim();
-  const payload = { id: $('#categoryFormId').value || undefined, name, icon: $('#catIcon').value, sort_order: Number($('#catOrder').value||0), is_active: $('#catActive').checked };
+  const payload = { id: $('#categoryFormId').value || undefined, name, icon: $('#catIcon').value, sort_order: Number($('#catOrder').value||0), is_active: $('#catActive').checked , image_url: $('#catImage').value.trim() || null, parent_id: $('#catParent').value || null};
   if (!payload.id) payload.slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
   try { await api.adminSaveCategory(payload); toast('Category saved'); $('#categoryModal').classList.remove('open'); loadAdminCats(); }
   catch (err) { toast(err.message||'Could not save category','err'); }
+}
+async function deleteCategory(id){
+  if (!confirm('Delete this category? Products in it will become uncategorised, not deleted.')) return;
+  try { await sb.from('categories').delete().eq('id', id); toast('Category deleted'); loadAdminCats(); }
+  catch (err) { toast(err.message||'Could not delete', 'err'); }
 }
 
 async function loadAdminOrders(){
