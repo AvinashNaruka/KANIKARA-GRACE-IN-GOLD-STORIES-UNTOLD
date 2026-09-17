@@ -595,7 +595,7 @@ async function applyCoupon(){
   const code = $('#couponInput').value.trim();
   if (!code) return;
   const t = cartTotals();
-  const res = await api.validateCoupon(code, t.subtotal);
+    const res = await api.validateCoupon(code, t.subtotal, state.session.user.id);
   if (!res.valid) { $('#couponMsg').textContent = res.message; $('#couponMsg').style.color = 'var(--danger)'; state.appliedCoupon = null; }
   else { state.appliedCoupon = { code: res.coupon.code, discount: res.discount }; $('#couponMsg').textContent = `Coupon applied — you saved ${money(res.discount)}`; $('#couponMsg').style.color = 'var(--success)'; }
   renderCheckoutSummary();
