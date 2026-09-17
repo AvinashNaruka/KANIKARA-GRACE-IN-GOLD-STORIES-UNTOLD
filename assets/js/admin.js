@@ -418,6 +418,22 @@ async function savePlan(e){
   catch (err) { toast(err.message||'Could not save plan','err'); }
 }
 
+async function showAssignPlan(){
+  const [customers, plans] = await Promise.all([api.adminAllCustomers(), api.adminAllSavingsPlans()]);
+  $('#assignCustomer').innerHTML = customers.filter(c=>c.role==='customer').map(c=>`<option value="${c.id}">${esc(c.full_name||'—')} (${esc(c.phone||'no phone')})</option>`).join('');
+  $('#assignPlanSelect').innerHTML = plans.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  $('#assignPlanModal').classList.add('open'); $('#overlay').classList.add('open');
+}
+async function assignPlanToCustomer(e){
+  e.preventDefault();
+  try {
+    await api.subscribeToPlan($('#assignCustomer').value, $('#assignPlanSelect').value);
+    toast('Plan assigned to customer');
+    $('#assignPlanModal').classList.remove('open');
+    loadAdminPlans();
+  } catch (err) { toast(err.message||'Could not assign plan', 'err'); }
+}
+
 async function loadAdminStores(){
   const stores = await api.adminAllStoreLocations();
   window.__adminStores = stores;
