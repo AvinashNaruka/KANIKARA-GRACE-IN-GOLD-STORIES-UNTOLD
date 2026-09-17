@@ -528,7 +528,7 @@
         <table class="data"><thead><tr><th>Company</th><th>Est. Quantity</th><th>Requirement</th><th>Status</th><th>Date</th></tr></thead><tbody id="adminCorporateTbl"></tbody></table>
       </div>
       <div class="admin-pane hide" data-pane="plans">
-        <div class="admin-topbar"><h1>Smart Purchase Plans</h1><button class="btn btn-gold btn-sm" onclick="showAddPlan()">+ Add Plan</button></div>
+        <div class="admin-topbar"><h1>Smart Purchase Plans</h1><button class="btn btn-gold btn-sm" onclick="showAddPlan()">+ Add Plan</button><button class="btn btn-line-dark btn-sm" onclick="showAssignPlan()">+ Assign to Customer</button></div>
         <table class="data"><thead><tr><th>Name</th><th>Monthly</th><th>Duration</th><th>Bonus</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminPlansTbl"></tbody></table>
         <h3 style="font-family:var(--serif);margin:28px 0 14px">Active Subscriptions</h3>
         <table class="data"><thead><tr><th>Customer</th><th>Plan</th><th>Months Paid</th><th>Total Paid</th><th>Status</th></tr></thead><tbody id="adminSubsTbl"></tbody></table>
@@ -751,6 +751,18 @@
   </div>
 </div>
 
+<div class="modal" id="assignPlanModal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="$('#assignPlanModal').classList.remove('open')">✕</button>
+    <h2>Assign Plan to Customer</h2>
+    <form id="assignPlanForm" onsubmit="assignPlanToCustomer(event)">
+      <div class="field"><label>Customer</label><select id="assignCustomer" required></select></div>
+      <div class="field"><label>Plan</label><select id="assignPlanSelect" required></select></div>
+      <button class="btn btn-gold btn-block" type="submit" style="margin-top:14px">Assign</button>
+    </form>
+  </div>
+</div>   
+   
 <div class="modal" id="planModal">
   <div class="modal-card">
     <button class="modal-close" onclick="$('#planModal').classList.remove('open')">✕</button>
