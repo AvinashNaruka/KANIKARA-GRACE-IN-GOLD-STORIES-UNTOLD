@@ -165,12 +165,16 @@ const api = {
   },
   async deleteAddress(id){ await sb.from('addresses').delete().eq('id', id); },
 
-  async validateCoupon(code, subtotal){
+    async validateCoupon(code, subtotal, userId){
     const { data, error } = await sb.from('coupons').select('*').eq('code', code.toUpperCase()).eq('is_active', true).maybeSingle();
     if (error || !data) return { valid: false, message: 'Invalid or expired coupon code' };
     if (data.valid_until && new Date(data.valid_until) < new Date()) return { valid: false, message: 'This coupon has expired' };
     if (data.usage_limit && data.used_count >= data.usage_limit) return { valid: false, message: 'This coupon has reached its usage limit' };
     if (subtotal < data.min_order_amount) return { valid: false, message: `Add items worth ₹${data.min_order_amount} more to use this coupon` };
+    if (userId && data.per_user_limit) {
+      const { count } = await sb.from('coupon_redemptions').select('*', { count: 'exact', head: true }).eq('coupon_id', data.id).eq('user_id', userId);
+      if ((count||0) >= data.per_user_limit) return { valid: false, message: 'You have already used this coupon the maximum number of times' };
+    }
     let discount = data.discount_type === 'percent' ? (subtotal * data.discount_value / 100) : data.discount_value;
     if (data.max_discount) discount = Math.min(discount, data.max_discount);
     return { valid: true, coupon: data, discount: Math.round(discount) };
@@ -195,6 +199,7 @@ const api = {
       try {
         const { data: c } = await sb.from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
         if (c) await sb.from('coupons').update({ used_count: (c.used_count || 0) + 1 }).eq('id', c.id);
+        if (c) await sb.from('coupon_redemptions').insert({ coupon_id: c.id, user_id: order.user_id, order_id: created.id });
       } catch (_) { /* ignore */ }
     }
     return created;
