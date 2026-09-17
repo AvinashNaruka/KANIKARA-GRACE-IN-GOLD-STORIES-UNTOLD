@@ -289,20 +289,22 @@ async function loadHome(){
   if (homeLoaded) { initScrollReveal(); return; }
   homeLoaded = true;
   try {
-    const [cats, featured, bestsellers, reviews] = await Promise.all([
+        const [cats, featured, bestsellers, reviews, recentForCats] = await Promise.all([
       api.getCategories(),
       api.getProducts({ featured: true, limit: 8 }),
       api.getProducts({ bestseller: true, limit: 4 }),
-      api.getApprovedReviews(3)
+      api.getApprovedReviews(3),
+      api.getProducts({ sort: 'newest', limit: 60 })
     ]);
     state.categories = cats;
+    const latestImgByCat = {};
+    recentForCats.forEach(p => { if (p.category_id && !latestImgByCat[p.category_id] && p.images?.length) latestImgByCat[p.category_id] = p.images[0]; });
     $('#homeCats').innerHTML = cats.slice(0,6).map(c => `
       <a class="cat-tile" href="#shop" onclick="event.preventDefault();filterByCategory('${c.slug}')">
-        <div class="arch-frame"><img src="${esc(c.image_url || placeholderImg())}" alt=""></div>
+        <div class="arch-frame"><img src="${esc(latestImgByCat[c.id] || c.image_url || placeholderImg())}" alt=""></div>
         <span>${esc(c.name)}</span>
       </a>`).join('');
     populateCatDropdowns(cats);
-
     $('#homeFeatured').innerHTML = featured.length ? featured.map(productCardHTML).join('') : emptyProductsMsg();
     $('#homeBest').innerHTML = bestsellers.length ? bestsellers.map(productCardHTML).join('') : emptyProductsMsg();
 
