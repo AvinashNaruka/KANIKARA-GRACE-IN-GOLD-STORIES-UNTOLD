@@ -273,6 +273,7 @@ function editCoupon(id){
   showAddCoupon();
   $('#couponFormId').value = c.id; $('#couponCode').value = c.code; $('#couponDesc').value = c.description||'';
   $('#couponType').value = c.discount_type; $('#couponValue').value = c.discount_value; $('#couponMin').value = c.min_order_amount||0;
+  $('#couponMaxDiscount').value = c.max_discount || ''; $('#couponPerUser').value = c.per_user_limit || 1;
   $('#couponActive').checked = c.is_active !== false;
 }
 async function saveCoupon(e){
@@ -284,6 +285,8 @@ async function saveCoupon(e){
     discount_type: $('#couponType').value,
     discount_value: Number($('#couponValue').value),
     min_order_amount: Number($('#couponMin').value||0),
+    max_discount: $('#couponMaxDiscount').value ? Number($('#couponMaxDiscount').value) : null,
+    per_user_limit: Number($('#couponPerUser').value || 1),
     is_active: $('#couponActive').checked
   };
   try { await api.adminSaveCoupon(payload); toast('Coupon saved'); $('#couponModal').classList.remove('open'); loadAdminCoupons(); }
