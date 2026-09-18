@@ -469,6 +469,7 @@
       <a href="#" data-tab="dashboard" class="active" onclick="event.preventDefault();switchAdmin('dashboard')">Dashboard</a>
       <a href="#" data-tab="products" onclick="event.preventDefault();switchAdmin('products')">Products</a>
       <a href="#" data-tab="categories" onclick="event.preventDefault();switchAdmin('categories')">Categories</a>
+      <a href="#" data-tab="materials" onclick="event.preventDefault();switchAdmin('materials')">Materials</a>
       <a href="#" data-tab="orders" onclick="event.preventDefault();switchAdmin('orders')">Orders</a>
       <a href="#" data-tab="coupons" onclick="event.preventDefault();switchAdmin('coupons')">Coupons</a>
       <a href="#" data-tab="custom" onclick="event.preventDefault();switchAdmin('custom')">Custom Requests</a>
@@ -499,6 +500,14 @@
         <div class="admin-topbar"><h1>Categories</h1><button class="btn btn-gold btn-sm" onclick="showAddCat()">+ Add Category</button></div>
         <table class="data"><thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminCatsTbl"></tbody></table>
       </div>
+       <div class="admin-pane hide" data-pane="materials">
+  <div class="admin-topbar"><h1>Materials</h1></div>
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+    <input id="newMaterialName" placeholder="e.g. Rose Gold" style="flex:1;border:1px solid var(--line-light);padding:10px">
+    <button class="btn btn-gold btn-sm" onclick="addMaterial()">+ Add</button>
+  </div>
+  <table class="data"><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody id="adminMaterialsTbl"></tbody></table>
+</div>
       <div class="admin-pane hide" data-pane="orders">
         <div class="admin-topbar"><h1>Orders</h1></div>
         <table class="data"><thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th><th>Invoice</th></tr></thead><tbody id="adminOrdersTbl"></tbody></table>
@@ -687,7 +696,7 @@
         <div class="field"><label>Purity</label><input id="productPurity" placeholder="22K"></div>
         <div class="field"><label>Weight (g)</label><input id="productWeight" type="number" step="0.01"></div>
       </div>
-      <div class="field"><label>Material</label><input id="productMaterial" placeholder="Gold, Diamond, Silver…"></div>
+      <div class="field"><label>Material</label><select id="productMaterial"></select></div>
       <div class="field">
         <label>Product Photos</label>
         <input type="file" accept="image/*" multiple onchange="uploadProductImages(this)" style="border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
