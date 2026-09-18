@@ -204,10 +204,17 @@ async function loadAdminCats(){
   const cats = await api.adminAllCategories();
   window.__adminCats = cats;
   $('#catParent').innerHTML = '<option value="">— None —</option>' + cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  $('#adminCatsTbl').innerHTML = cats.map(c=>{
+  const tops = cats.filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order);
+  const ordered = [];
+  tops.forEach(p => {
+    ordered.push(p);
+    cats.filter(c=>c.parent_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).forEach(c=>ordered.push(c));
+  });
+  cats.filter(c=>c.parent_id && !cats.find(p=>p.id===c.parent_id)).forEach(c=>ordered.push(c));
+  $('#adminCatsTbl').innerHTML = ordered.map(c=>{
     const parentName = c.parent_id ? (cats.find(p=>p.id===c.parent_id)?.name || '') : '';
     return `
-    <tr><td>${c.icon||''}</td><td>${parentName?'&nbsp;&nbsp;↳ ':''}${esc(c.name)}${parentName?` <span style="font-size:11px;color:rgba(34,31,28,.5)">(in ${esc(parentName)})</span>`:''}</td><td>${esc(c.slug)}</td><td>${c.sort_order}</td>
+    <tr><td>${c.icon||''}</td><td>${parentName?'&nbsp;&nbsp;&nbsp;&nbsp;↳ ':''}${esc(c.name)}</td><td>${esc(c.slug)}</td><td>${c.sort_order}</td>
     <td>${c.is_active?'<span class="status-badge status-delivered">Active</span>':'<span class="status-badge status-cancelled">Hidden</span>'}</td>
     <td><button class="action-btn" onclick="editCategory('${c.id}')">Edit</button> <button class="action-btn" onclick="deleteCategory('${c.id}')">Delete</button></td></tr>`;
   }).join('');
