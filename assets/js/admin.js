@@ -130,7 +130,7 @@ async function uploadProductImages(input){
 function renderImgPreview(urls){
   $('#productImgPreview').innerHTML = urls.map((u,i)=>`
     <div style="position:relative">
-      <img src="${esc(u)}" style="width:64px;height:64px;object-fit:cover;border:1px solid var(--line-light)">
+      <img src="${esc(u)}" style="width:96px;height:96px;object-fit:cover;border:1px solid var(--line-light)">
       <button type="button" onclick="removeImgFromField(${i})" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--danger);color:#fff;border-radius:50%;font-size:11px;line-height:1">✕</button>
     </div>`).join('');
 }
