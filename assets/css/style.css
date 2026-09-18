@@ -196,7 +196,7 @@ section.block.tight{ padding:56px var(--pad); }
 .cat-tile:hover .arch-frame{ border-color:var(--gold); }
 .arch-frame{ transition:border-color .3s; }
 
-.p-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:32px 26px; }
+.p-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:36px 30px; }
 .p-card{ position:relative; }
 .p-card .thumb{
   position:relative; aspect-ratio:1/1.12; overflow:hidden; background:var(--ivory-2);
