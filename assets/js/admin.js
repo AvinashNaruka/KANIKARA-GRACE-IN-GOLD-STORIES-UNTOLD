@@ -202,16 +202,23 @@ async function deleteProduct(id, name){
   catch (err) { toast(err.message||'Could not delete', 'err'); }
 }
 
-async function loadAdminCats(){
-  const cats = await api.adminAllCategories();
-  window.__adminCats = cats;
-  $('#catParent').innerHTML = '<option value="">— None —</option>' + cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  const tops = cats.filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order);
-  const ordered = [];
-  tops.forEach(p => {
-    ordered.push(p);
-    cats.filter(c=>c.parent_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).forEach(c=>ordered.push(c));
-  });
+async function loadAdminMaterials(){
+  const mats = await api.getMaterials();
+  window.__adminMaterials = mats;
+  $('#adminMaterialsTbl').innerHTML = mats.map(m=>`
+    <tr><td>${esc(m.name)}</td><td><button class="action-btn" style="color:var(--danger)" onclick="deleteMaterial('${m.id}','${esc(m.name)}')">Delete</button></td></tr>`).join('') || `<tr><td colspan="2">No materials yet</td></tr>`;
+}
+async function addMaterial(){
+  const name = $('#newMaterialName').value.trim();
+  if (!name) return;
+  try { await api.adminSaveMaterial(name); $('#newMaterialName').value=''; toast('Material added'); loadAdminMaterials(); }
+  catch (err) { toast(err.message||'Could not add material', 'err'); }
+}
+async function deleteMaterial(id, name){
+  if (!confirm(`Delete "${name}"?`)) return;
+  try { await api.adminDeleteMaterial(id); toast('Material deleted'); loadAdminMaterials(); }
+  catch (err) { toast(err.message||'Could not delete', 'err'); }
+}
   async function loadAdminMaterials(){
   const mats = await api.getMaterials();
   window.__adminMaterials = mats;
