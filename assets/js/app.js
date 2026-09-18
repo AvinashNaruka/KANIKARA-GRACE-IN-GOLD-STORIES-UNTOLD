@@ -370,11 +370,21 @@ function toggleTagFilter(tag, checked){
 }
 function renderShopFilters(){
   const host = $('#catFilters');
-  host.innerHTML = state.categories.map(c => `
+  const cats = state.categories;
+  const tops = cats.filter(c=>!c.parent_id);
+  host.innerHTML = tops.map(c => {
+    const children = cats.filter(ch=>ch.parent_id===c.id);
+    return `
     <label class="filter-opt">
       <input type="radio" name="catFilter" value="${c.slug}" ${state.filters.category===c.slug?'checked':''} onchange="setShopCategory('${c.slug}')">
       ${esc(c.icon||'')} ${esc(c.name)}
-    </label>`).join('') + `
+    </label>
+    ${children.length ? `<div style="margin-left:18px">${children.map(ch=>`
+      <label class="filter-opt" style="font-size:12.5px">
+        <input type="radio" name="catFilter" value="${ch.slug}" ${state.filters.category===ch.slug?'checked':''} onchange="setShopCategory('${ch.slug}')">
+        ${esc(ch.icon||'')} ${esc(ch.name)}
+      </label>`).join('')}</div>` : ''}`;
+  }).join('') + `
     <label class="filter-opt"><input type="radio" name="catFilter" value="" ${!state.filters.category?'checked':''} onchange="setShopCategory('')"> All Categories</label>`;
 }
 function setShopCategory(slug){ state.filters.category = slug; runShopQuery(); }
