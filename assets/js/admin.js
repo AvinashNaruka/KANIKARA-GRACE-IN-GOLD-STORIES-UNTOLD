@@ -15,7 +15,7 @@ function switchAdmin(tab){
   $$('.admin-side a').forEach(a=>a.classList.toggle('active', a.dataset.tab===tab));
   $$('.admin-pane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==tab));
   const loaders = {
-    dashboard: loadAdminDashboard, products: loadAdminProducts, categories: loadAdminCats,
+    dashboard: loadAdminDashboard, products: loadAdminProducts, categories: loadAdminCats, materials: loadAdminMaterials,
     orders: loadAdminOrders, coupons: loadAdminCoupons, custom: loadAdminCustom,
     reviews: loadAdminReviews, customers: loadAdminCustomers, settings: loadAdminSettings,
     giftcards: loadAdminGiftCards, corporate: loadAdminCorporate, plans: loadAdminPlans,
@@ -58,6 +58,7 @@ function showAddProduct(){
   $('#productForm').reset(); $('#productFormId').value = '';
   $('#productFormTitle').textContent = 'Add Product';
   $('#productCat').innerHTML = (window.__adminCats||[]).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    api.getMaterials().then(mats => $('#productMaterial').innerHTML = mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join(''));
   $('#productImgPreview').innerHTML = '';
   $('#productModal').classList.add('open'); $('#overlay').classList.add('open');
 }
@@ -149,6 +150,7 @@ function editProduct(id){
   $('#productFormId').value = p.id;
   $('#productName').value = p.name || '';
   $('#productCat').value = p.category_id || '';
+  api.getMaterials().then(mats => { $('#productMaterial').innerHTML = mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join(''); $('#productMaterial').value = p.material || ''; });
   $('#productPrice').value = p.price || '';
   $('#productMrp').value = p.mrp || '';
   $('#productStock').value = p.stock_quantity || 0;
@@ -210,6 +212,23 @@ async function loadAdminCats(){
     ordered.push(p);
     cats.filter(c=>c.parent_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).forEach(c=>ordered.push(c));
   });
+  async function loadAdminMaterials(){
+  const mats = await api.getMaterials();
+  window.__adminMaterials = mats;
+  $('#adminMaterialsTbl').innerHTML = mats.map(m=>`
+    <tr><td>${esc(m.name)}</td><td><button class="action-btn" style="color:var(--danger)" onclick="deleteMaterial('${m.id}','${esc(m.name)}')">Delete</button></td></tr>`).join('') || `<tr><td colspan="2">No materials yet</td></tr>`;
+}
+async function addMaterial(){
+  const name = $('#newMaterialName').value.trim();
+  if (!name) return;
+  try { await api.adminSaveMaterial(name); $('#newMaterialName').value=''; toast('Material added'); loadAdminMaterials(); }
+  catch (err) { toast(err.message||'Could not add material', 'err'); }
+}
+async function deleteMaterial(id, name){
+  if (!confirm(`Delete "${name}"?`)) return;
+  try { await api.adminDeleteMaterial(id); toast('Material deleted'); loadAdminMaterials(); }
+  catch (err) { toast(err.message||'Could not delete', 'err'); }
+}
   cats.filter(c=>c.parent_id && !cats.find(p=>p.id===c.parent_id)).forEach(c=>ordered.push(c));
   $('#adminCatsTbl').innerHTML = ordered.map(c=>{
     const parentName = c.parent_id ? (cats.find(p=>p.id===c.parent_id)?.name || '') : '';
