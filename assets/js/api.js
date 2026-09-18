@@ -285,7 +285,20 @@ const api = {
     }
   },
   async adminDeleteProduct(id){ await sb.from('products').delete().eq('id', id); },
-
+  
+    async getMaterials(){
+    const { data, error } = await sb.from('materials').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+  async adminSaveMaterial(name){
+    const { error } = await sb.from('materials').insert({ name: name.trim() });
+    if (error) throw error;
+  },
+  async adminDeleteMaterial(id){
+    await sb.from('materials').delete().eq('id', id);
+  },
+  
   async adminAllCategories(){
     const { data, error } = await sb.from('categories').select('*').order('sort_order');
     if (error) throw error;
