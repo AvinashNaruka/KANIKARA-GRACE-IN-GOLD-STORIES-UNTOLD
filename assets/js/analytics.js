@@ -1,10 +1,9 @@
-
 (function () {
   'use strict';
 
   var CFG = {
-    TRACK_ADMINS: false,   // true karein to apni khud ki views bhi count hongi
-    LOOKBACK_DAYS: 30,     // admin panel kitne din ka data padhe
+    TRACK_ADMINS: false,   
+    LOOKBACK_DAYS: 30,     
     MAX_ROWS: 8000
   };
 
@@ -60,7 +59,6 @@
   var sessionId = ss.get(SKEY);
   if (!sessionId) { sessionId = uid(); ss.set(SKEY, sessionId); }
 
-  // UTM ek baar capture karke poore session ke liye yaad rakho
   var utm = {};
   try { utm = JSON.parse(ss.get(UTMKEY) || '{}'); } catch (e) { utm = {}; }
   (function () {
@@ -91,7 +89,7 @@
 
     var key = page + '|' + (slug || '');
     var now = Date.now();
-    if (key === lastKey && now - lastAt < 1500) return; // duplicate guard
+    if (key === lastKey && now - lastAt < 1500) return; 
     lastKey = key; lastAt = now;
 
     var d = deviceInfo();
@@ -119,6 +117,7 @@
     });
   }
 
+
   function wrap(name, after) {
     var orig = window[name];
     if (typeof orig !== 'function' || orig.__kkWrapped) return;
@@ -137,6 +136,7 @@
     window.addEventListener('popstate', function () { setTimeout(function () { track(); }, 60); });
   }
 
+
   var CSS = '' +
     '.kk-an-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}' +
     '@media(max-width:900px){.kk-an-grid{grid-template-columns:1fr 1fr}}' +
@@ -145,8 +145,8 @@
     '.kk-an-card .l{font-size:12px;opacity:.6;margin-top:6px;letter-spacing:.04em;text-transform:uppercase}' +
     '.kk-an-two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}' +
     '@media(max-width:900px){.kk-an-two{grid-template-columns:1fr}}' +
-    '.kk-bars{display:flex;align-items:flex-end;gap:5px;height:150px;padding-top:10px}' +
-    '.kk-bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}' +
+    '.kk-bars{display:flex;align-items:flex-end;justify-content:center;gap:5px;height:150px;padding-top:10px}' +
+    '.kk-bars>div{flex:1;max-width:70px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}' +
     '.kk-bars .b{width:100%;background:linear-gradient(180deg,#d4af37,#b8912b);min-height:2px;border-radius:2px 2px 0 0}' +
     '.kk-bars .t{font-size:9px;opacity:.55;white-space:nowrap}' +
     '.kk-live{display:inline-flex;align-items:center;gap:7px;font-size:12px}' +
@@ -206,6 +206,7 @@
     }
   }
 
+
   var cache = { rows: null, at: 0 };
 
   window.loadAdminAnalytics = async function (force) {
@@ -221,10 +222,10 @@
           .limit(CFG.MAX_ROWS);
       };
       var res = await q('*, profiles(full_name, phone)');
-      if (res.error) res = await q('*');   // profiles join na chale to bina naam ke chalao
+      if (res.error) res = await q('*');  
       if (res.error) {
-        body.innerHTML = '<div class="dash-card"><b>Analytics data load nahi hua.</b><br><span style="opacity:.7">' +
-          E(res.error.message) + '</span><br><br>Agar table missing hai to Supabase SQL Editor me <code>analytics-schema.sql</code> run karein.</div>';
+        body.innerHTML = '<div class="dash-card"><b>Could not load analytics.</b><br><span style="opacity:.7">' +
+          E(res.error.message) + '</span><br><br>If the table is missing, run <code>analytics-schema.sql</code> in the Supabase SQL Editor.</div>';
         return;
       }
       cache.rows = res.data || [];
@@ -258,24 +259,35 @@
         card(todayRows.length, 'Views today') +
       '</div>' +
       '<div class="kk-an-grid">' +
-        card(uniq(live, 'visitor_id'), '<span class="kk-live"><i></i>Online abhi</span>') +
+        card(uniq(live, 'visitor_id'), '<span class="kk-live"><i></i>Online now</span>') +
         card(uniq(loggedIn, 'user_id'), 'Logged-in viewers') +
         card(rows.filter(function (r) { return r.is_new_visitor; }).length, 'New visitors') +
         card(all.length, 'Total views (' + CFG.LOOKBACK_DAYS + 'd)') +
       '</div>';
 
-    var nDays = days === 1 ? 1 : days;
-    var buckets = [];
-    for (var i = nDays - 1; i >= 0; i--) {
-      var d0 = startOfDay(new Date(Date.now() - i * 864e5));
-      var d1 = new Date(d0.getTime() + 864e5);
-      var v = all.filter(function (r) { var t = new Date(r.created_at); return t >= d0 && t < d1; });
-      buckets.push({ label: d0.getDate() + '/' + (d0.getMonth() + 1), views: v.length });
+    // daily bars
+    var buckets = [], chartTitle;
+    if (days === 1) {
+      chartTitle = 'Views by hour (today)';
+      var day0 = startOfDay(new Date());
+      for (var h = 0; h < 24; h++) {
+        var h0 = new Date(day0.getTime() + h * 36e5), h1 = new Date(h0.getTime() + 36e5);
+        var hv = all.filter(function (r) { var t = new Date(r.created_at); return t >= h0 && t < h1; });
+        buckets.push({ label: (h % 3 === 0 ? h + 'h' : ''), views: hv.length });
+      }
+    } else {
+      chartTitle = 'Daily views';
+      for (var i = days - 1; i >= 0; i--) {
+        var d0 = startOfDay(new Date(Date.now() - i * 864e5));
+        var d1 = new Date(d0.getTime() + 864e5);
+        var v = all.filter(function (r) { var t = new Date(r.created_at); return t >= d0 && t < d1; });
+        buckets.push({ label: d0.getDate() + '/' + (d0.getMonth() + 1), views: v.length });
+      }
     }
     var max = Math.max.apply(null, buckets.map(function (b) { return b.views; }).concat([1]));
-    var bars = '<div class="kk-an-card"><h3>Daily views</h3><div class="kk-bars">' +
+    var bars = '<div class="kk-an-card"><h3>' + chartTitle + '</h3><div class="kk-bars">' +
       buckets.map(function (b) {
-        return '<div><span style="font-size:10px;opacity:.6">' + b.views + '</span>' +
+        return '<div><span style="font-size:10px;opacity:.6">' + (b.views || '') + '</span>' +
                '<div class="b" style="height:' + Math.round((b.views / max) * 110) + 'px"></div>' +
                '<span class="t">' + b.label + '</span></div>';
       }).join('') + '</div></div>';
@@ -286,6 +298,7 @@
     var srcs = topTable(rows, function (r) { return r.referrer_host || (r.utm_source ? 'utm: ' + r.utm_source : 'Direct'); }, 'Source', 'Views');
     var devs = topTable(rows, function (r) { return (r.device || '—') + ' · ' + (r.browser || '—'); }, 'Device', 'Views');
 
+    // recent visitors
     var seen = {};
     var recent = rows.slice(0, 400).filter(function (r) {
       var k = r.session_id; if (seen[k]) return false; seen[k] = 1; return true;
@@ -304,7 +317,7 @@
           E(r.referrer_host || (r.utm_source ? 'utm: ' + r.utm_source : 'Direct')) + '</td><td>' +
           E((r.device || '') + ' · ' + (r.os || '')) + '</td><td style="opacity:.5">' +
           E(String(r.visitor_id).slice(0, 8)) + '</td></tr>';
-      }).join('') || '<tr><td colspan="6">Abhi koi visit record nahi hui</td></tr>') +
+      }).join('') || '<tr><td colspan="6">No visits recorded yet</td></tr>') +
       '</tbody></table></div>';
 
     body.innerHTML = kpi + bars +
