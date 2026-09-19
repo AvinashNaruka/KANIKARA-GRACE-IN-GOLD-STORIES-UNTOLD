@@ -2,8 +2,8 @@
   'use strict';
 
   var CFG = {
-    TRACK_ADMINS: false,   // set true to also count your own (admin) visits
-    LOOKBACK_DAYS: 30,     // admin panel kitne din ka data padhe
+    TRACK_ADMINS: false,   
+    LOOKBACK_DAYS: 30,     
     MAX_ROWS: 8000
   };
 
