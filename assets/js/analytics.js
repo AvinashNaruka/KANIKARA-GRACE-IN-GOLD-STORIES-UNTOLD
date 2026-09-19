@@ -8,7 +8,6 @@
     MAX_ROWS: 8000
   };
 
-  /* ---------------- helpers ---------------- */
   var uid = function () {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -54,7 +53,6 @@
     } catch (e) { return null; }
   }
 
-  /* ---------------- visitor identity ---------------- */
   var VKEY = 'kk_visitor_id', SKEY = 'kk_session_id', UTMKEY = 'kk_utm';
   var isNew = false;
   var visitorId = ls.get(VKEY);
@@ -79,7 +77,6 @@
   var firstReferrer = ss.get('kk_ref');
   if (firstReferrer === null) { firstReferrer = document.referrer || ''; ss.set('kk_ref', firstReferrer); }
 
-  /* ---------------- tracking ---------------- */
   var lastKey = '', lastAt = 0;
 
   function track(pageId) {
@@ -140,7 +137,6 @@
     window.addEventListener('popstate', function () { setTimeout(function () { track(); }, 60); });
   }
 
-  /* ---------------- admin UI injection ---------------- */
   var CSS = '' +
     '.kk-an-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}' +
     '@media(max-width:900px){.kk-an-grid{grid-template-columns:1fr 1fr}}' +
@@ -198,7 +194,6 @@
       };
     });
 
-    // switchAdmin ko analytics tab samjhao
     var orig = window.switchAdmin;
     if (typeof orig === 'function' && !orig.__kkWrapped) {
       var fn = function (tab) {
@@ -211,7 +206,6 @@
     }
   }
 
-  /* ---------------- data + rendering ---------------- */
   var cache = { rows: null, at: 0 };
 
   window.loadAdminAnalytics = async function (force) {
@@ -270,7 +264,6 @@
         card(all.length, 'Total views (' + CFG.LOOKBACK_DAYS + 'd)') +
       '</div>';
 
-    // daily bars
     var nDays = days === 1 ? 1 : days;
     var buckets = [];
     for (var i = nDays - 1; i >= 0; i--) {
@@ -293,7 +286,6 @@
     var srcs = topTable(rows, function (r) { return r.referrer_host || (r.utm_source ? 'utm: ' + r.utm_source : 'Direct'); }, 'Source', 'Views');
     var devs = topTable(rows, function (r) { return (r.device || '—') + ' · ' + (r.browser || '—'); }, 'Device', 'Views');
 
-    // recent visitors
     var seen = {};
     var recent = rows.slice(0, 400).filter(function (r) {
       var k = r.session_id; if (seen[k]) return false; seen[k] = 1; return true;
@@ -343,11 +335,10 @@
     return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   }
 
-  /* ---------------- boot ---------------- */
   function start() {
     installHooks();
     injectUI();
-    setTimeout(function () { track(); }, 1400); // auth settle hone ke baad first view
+    setTimeout(function () { track(); }, 1400); 
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
