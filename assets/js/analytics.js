@@ -2,8 +2,8 @@
   'use strict';
 
   var CFG = {
-    TRACK_ADMINS: false,   
-    LOOKBACK_DAYS: 30,     
+    TRACK_ADMINS: false,   // set true to also count your own (admin) visits
+    LOOKBACK_DAYS: 30,     // admin panel kitne din ka data padhe
     MAX_ROWS: 8000
   };
 
@@ -89,7 +89,7 @@
 
     var key = page + '|' + (slug || '');
     var now = Date.now();
-    if (key === lastKey && now - lastAt < 1500) return; 
+    if (key === lastKey && now - lastAt < 1500) return; // duplicate guard
     lastKey = key; lastAt = now;
 
     var d = deviceInfo();
@@ -117,7 +117,6 @@
     });
   }
 
-
   function wrap(name, after) {
     var orig = window[name];
     if (typeof orig !== 'function' || orig.__kkWrapped) return;
@@ -136,6 +135,16 @@
     window.addEventListener('popstate', function () { setTimeout(function () { track(); }, 60); });
   }
 
+  function waitForAuthThenTrack() {
+    var maxWait = 6000, bufferAfterAuth = 250;
+    var authCheck = (typeof sb !== 'undefined' && sb.auth && sb.auth.getSession)
+      ? sb.auth.getSession().catch(function () { return null; })
+      : Promise.resolve(null);
+    var timeout = new Promise(function (resolve) { setTimeout(resolve, maxWait); });
+    Promise.race([authCheck, timeout]).then(function () {
+      setTimeout(track, bufferAfterAuth);
+    });
+  }
 
   var CSS = '' +
     '.kk-an-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}' +
@@ -194,6 +203,7 @@
       };
     });
 
+    // switchAdmin ko analytics tab samjhao
     var orig = window.switchAdmin;
     if (typeof orig === 'function' && !orig.__kkWrapped) {
       var fn = function (tab) {
@@ -206,7 +216,7 @@
     }
   }
 
-
+  /* ---------------- data + rendering ---------------- */
   var cache = { rows: null, at: 0 };
 
   window.loadAdminAnalytics = async function (force) {
@@ -222,7 +232,7 @@
           .limit(CFG.MAX_ROWS);
       };
       var res = await q('*, profiles(full_name, phone)');
-      if (res.error) res = await q('*');  
+      if (res.error) res = await q('*');   // fall back to no-name data if the join fails
       if (res.error) {
         body.innerHTML = '<div class="dash-card"><b>Could not load analytics.</b><br><span style="opacity:.7">' +
           E(res.error.message) + '</span><br><br>If the table is missing, run <code>analytics-schema.sql</code> in the Supabase SQL Editor.</div>';
@@ -351,7 +361,7 @@
   function start() {
     installHooks();
     injectUI();
-    setTimeout(function () { track(); }, 1400); 
+    waitForAuthThenTrack();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
