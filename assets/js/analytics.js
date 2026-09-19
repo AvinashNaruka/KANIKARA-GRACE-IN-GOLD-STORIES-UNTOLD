@@ -1,3 +1,4 @@
+
 (function () {
   'use strict';
 
@@ -7,6 +8,7 @@
     MAX_ROWS: 8000
   };
 
+  /* ---------------- helpers ---------------- */
   var uid = function () {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -52,6 +54,7 @@
     } catch (e) { return null; }
   }
 
+  /* ---------------- visitor identity ---------------- */
   var VKEY = 'kk_visitor_id', SKEY = 'kk_session_id', UTMKEY = 'kk_utm';
   var isNew = false;
   var visitorId = ls.get(VKEY);
@@ -59,6 +62,7 @@
   var sessionId = ss.get(SKEY);
   if (!sessionId) { sessionId = uid(); ss.set(SKEY, sessionId); }
 
+  // UTM ek baar capture karke poore session ke liye yaad rakho
   var utm = {};
   try { utm = JSON.parse(ss.get(UTMKEY) || '{}'); } catch (e) { utm = {}; }
   (function () {
@@ -75,6 +79,7 @@
   var firstReferrer = ss.get('kk_ref');
   if (firstReferrer === null) { firstReferrer = document.referrer || ''; ss.set('kk_ref', firstReferrer); }
 
+  /* ---------------- tracking ---------------- */
   var lastKey = '', lastAt = 0;
 
   function track(pageId) {
@@ -135,6 +140,7 @@
     window.addEventListener('popstate', function () { setTimeout(function () { track(); }, 60); });
   }
 
+  /* ---------------- admin UI injection ---------------- */
   var CSS = '' +
     '.kk-an-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px}' +
     '@media(max-width:900px){.kk-an-grid{grid-template-columns:1fr 1fr}}' +
@@ -192,6 +198,7 @@
       };
     });
 
+    // switchAdmin ko analytics tab samjhao
     var orig = window.switchAdmin;
     if (typeof orig === 'function' && !orig.__kkWrapped) {
       var fn = function (tab) {
@@ -204,6 +211,7 @@
     }
   }
 
+  /* ---------------- data + rendering ---------------- */
   var cache = { rows: null, at: 0 };
 
   window.loadAdminAnalytics = async function (force) {
@@ -212,14 +220,17 @@
     if (force || !cache.rows || Date.now() - cache.at > 60000) {
       body.innerHTML = '<p style="opacity:.6">Loading analytics…</p>';
       var since = new Date(Date.now() - CFG.LOOKBACK_DAYS * 864e5).toISOString();
-      var res = await sb.from('page_views')
-        .select('*, profiles(full_name, email)')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(CFG.MAX_ROWS);
+      var q = function (sel) {
+        return sb.from('page_views').select(sel)
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(CFG.MAX_ROWS);
+      };
+      var res = await q('*, profiles(full_name, phone)');
+      if (res.error) res = await q('*');   // profiles join na chale to bina naam ke chalao
       if (res.error) {
-        body.innerHTML = '<div class="dash-card"><b>Analytics table nahi mili.</b><br><span style="opacity:.7">' +
-          E(res.error.message) + '</span><br><br>Supabase SQL Editor me <code>analytics-schema.sql</code> run karein.</div>';
+        body.innerHTML = '<div class="dash-card"><b>Analytics data load nahi hua.</b><br><span style="opacity:.7">' +
+          E(res.error.message) + '</span><br><br>Agar table missing hai to Supabase SQL Editor me <code>analytics-schema.sql</code> run karein.</div>';
         return;
       }
       cache.rows = res.data || [];
@@ -259,6 +270,7 @@
         card(all.length, 'Total views (' + CFG.LOOKBACK_DAYS + 'd)') +
       '</div>';
 
+    // daily bars
     var nDays = days === 1 ? 1 : days;
     var buckets = [];
     for (var i = nDays - 1; i >= 0; i--) {
@@ -281,6 +293,7 @@
     var srcs = topTable(rows, function (r) { return r.referrer_host || (r.utm_source ? 'utm: ' + r.utm_source : 'Direct'); }, 'Source', 'Views');
     var devs = topTable(rows, function (r) { return (r.device || '—') + ' · ' + (r.browser || '—'); }, 'Device', 'Views');
 
+    // recent visitors
     var seen = {};
     var recent = rows.slice(0, 400).filter(function (r) {
       var k = r.session_id; if (seen[k]) return false; seen[k] = 1; return true;
@@ -289,8 +302,11 @@
     var recentTbl = '<div class="kk-an-card"><h3>Recent visitors</h3>' +
       '<table class="data"><thead><tr><th>When</th><th>Who</th><th>Page</th><th>Source</th><th>Device</th><th>Visitor</th></tr></thead><tbody>' +
       (recent.map(function (r) {
-        var who = r.profiles && r.profiles.full_name ? E(r.profiles.full_name)
-                : (r.profiles && r.profiles.email ? E(r.profiles.email) : '<span style="opacity:.55">Guest</span>');
+        var p = r.profiles || null;
+        var who = p && p.full_name ? E(p.full_name)
+                : p && p.phone ? E(p.phone)
+                : r.user_id ? '<span style="opacity:.7">Member · ' + E(String(r.user_id).slice(0, 8)) + '</span>'
+                : '<span style="opacity:.55">Guest</span>';
         var pageTxt = E(r.page || '') + (r.product_slug ? ' · ' + E(r.product_slug) : '');
         return '<tr><td>' + timeAgo(r.created_at) + '</td><td>' + who + '</td><td>' + pageTxt + '</td><td>' +
           E(r.referrer_host || (r.utm_source ? 'utm: ' + r.utm_source : 'Direct')) + '</td><td>' +
@@ -327,10 +343,11 @@
     return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   }
 
+  /* ---------------- boot ---------------- */
   function start() {
     installHooks();
     injectUI();
-    setTimeout(function () { track(); }, 1400); 
+    setTimeout(function () { track(); }, 1400); // auth settle hone ke baad first view
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
