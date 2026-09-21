@@ -383,14 +383,36 @@ async function loadAdminSettings(){
   const settings = await api.getSettings();
   const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address'];
   $('#adminSettingsForm').innerHTML = fields.map(k=>`
-    <div class="field"><label>${k.replace(/_/g,' ')}</label><input id="set_${k}" value="${esc(settings[k]||'')}"></div>`).join('');
+    <div class="field"><label>${k.replace(/_/g,' ')}</label><input id="set_${k}" value="${esc(settings[k]||'')}"></div>`).join('') +
+    `<div class="field" style="grid-column:1/-1;border-top:1px solid var(--line-light);padding-top:16px;margin-top:4px">
+      <label style="font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--charcoal)">⚡ Flash Sale</label>
+    </div>
+    <div class="field"><label class="filter-opt" style="padding:0"><input type="checkbox" id="set_flash_sale_active" ${settings.flash_sale_active==='true'?'checked':''}> Flash sale active</label></div>
+    <div class="field"><label>Banner Title</label><input id="set_flash_sale_title" placeholder="Festive Flash Sale — Up to 20% Off" value="${esc(settings.flash_sale_title||'')}"></div>
+    <div class="field"><label>Ends At</label><input type="datetime-local" id="set_flash_sale_end" value="${esc(toLocalDatetimeValue(settings.flash_sale_end))}"></div>
+    <div class="field"><label>Applies to Tag (Products tagged with this show in the sale)</label><input id="set_flash_sale_tag" placeholder="collection:flash-sale" value="${esc(settings.flash_sale_tag||'collection:flash-sale')}">
+      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Tag your discounted products with this exact tag (e.g. from Products → Tags field) and set their Price/MRP there. The banner links straight to those pieces with a live countdown.</div>
+    </div>`;
+}
+function toLocalDatetimeValue(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 async function saveAllSettings(){
-  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address'];
+  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag'];
   try {
-    await Promise.all(fields.map(k => api.updateSetting(k, $('#set_'+k).value)));
+    const endVal = $('#set_flash_sale_end').value;
+    await Promise.all([
+      ...fields.map(k => api.updateSetting(k, $('#set_'+k).value)),
+      api.updateSetting('flash_sale_active', $('#set_flash_sale_active').checked ? 'true' : 'false'),
+      api.updateSetting('flash_sale_end', endVal ? new Date(endVal).toISOString() : '')
+    ]);
     toast('Settings saved');
     state.settings = await api.getSettings();
+    if (typeof initFlashSale === 'function') initFlashSale(state.settings);
   } catch (err) { toast(err.message||'Could not save settings','err'); }
 }
 
