@@ -998,6 +998,40 @@ function populateCatDropdowns(cats){
   if (el) el.innerHTML = cats.slice(0,6).map(c=>`<li><a href="#shop" onclick="event.preventDefault();filterByCategory('${c.slug}')">${esc(c.name)}</a></li>`).join('');
 }
 
+let flashSaleTimer = null;
+function initFlashSale(s){
+  const bar = $('#flashSaleBar');
+  if (!bar) return;
+  if (flashSaleTimer) { clearInterval(flashSaleTimer); flashSaleTimer = null; }
+  const isActive = s.flash_sale_active === 'true';
+  const endTime = s.flash_sale_end ? new Date(s.flash_sale_end).getTime() : null;
+  if (!isActive || !endTime || isNaN(endTime) || endTime <= Date.now()) {
+    bar.classList.add('hide');
+    return;
+  }
+  $('#flashSaleTitle').textContent = s.flash_sale_title || 'Flash Sale';
+  bar.classList.remove('hide');
+  const tick = () => {
+    const diff = endTime - Date.now();
+    if (diff <= 0) {
+      bar.classList.add('hide');
+      clearInterval(flashSaleTimer); flashSaleTimer = null;
+      return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const sec = Math.floor((diff % 60000) / 1000);
+    const pad = n => String(n).padStart(2,'0');
+    $('#flashSaleCountdown').textContent = `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  };
+  tick();
+  flashSaleTimer = setInterval(tick, 1000);
+}
+function goFlashSale(){
+  const tag = state.settings?.flash_sale_tag;
+  if (tag) filterByTag(tag); else showPage('shop');
+}
+
 async function boot(){
   const settingsJob = api.getSettings().then(s => {
     state.settings = s;
@@ -1007,6 +1041,7 @@ async function boot(){
     if (s.store_phone) $('#footPhone').textContent = s.store_phone;
     const wa = (s.whatsapp_number || '').replace(/[^0-9]/g,'');
     if (wa) { $('#waFloat').href = `https://wa.me/${wa}?text=${encodeURIComponent('Hi! I have a question about a Kanikaara piece.')}`; $('#waFloat').classList.remove('hide'); }
+    initFlashSale(s);
   }).catch(e => console.error(e));
   const authJob = initAuth();
   await Promise.all([settingsJob, authJob]);
