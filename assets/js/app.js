@@ -129,7 +129,15 @@ async function handleSignup(e){
   const email = $('#signupEmail').value.trim(), pass = $('#signupPass').value;
   if (pass.length < 6) return toast('Password must be at least 6 characters', 'err');
   try {
-    await api.signUp(email, pass, name, phone);
+    const data = await api.signUp(email, pass, name, phone);
+    const refCode = sessionStorage.getItem('kk_ref_code');
+    if (refCode && data?.user?.id) {
+      try {
+        const coupon = await api.recordReferralSignup(refCode, data.user.id, email);
+        if (coupon) toast(`Welcome! Use code ${coupon} for ₹300 off your first order`);
+        sessionStorage.removeItem('kk_ref_code');
+      } catch(e){ console.error(e); }
+    }
     toast('Account created! You can sign in now.');
     switchAuthTab('login');
   } catch (err) { toast(err.message || 'Signup failed', 'err'); }
@@ -733,6 +741,7 @@ async function placeOrder(addr, t, method, paymentStatus, paymentId = null){
       try { await api.redeemGiftCardAmount(state.appliedGiftCard.id, state.appliedGiftCard.balance - t.giftCardUsed); } catch(_){}
     }
     await api.clearCart(state.session.user.id);
+        try { await api.rewardReferrerOnFirstOrder(state.session.user.id); } catch(e){ console.error(e); }
         const pointsEarned = Math.round(t.total * 0.02);
     if (pointsEarned > 0) { try { await api.addLoyaltyPoints(state.session.user.id, pointsEarned); } catch(e){ console.error(e); } }
     renderReceipt(addr, state.cart.map(i=>({name:i.products?.name||i.name, quantity:i.quantity, price:effectivePrice(i.products||i).price*i.quantity})), t.total);
@@ -789,6 +798,7 @@ function switchDash(tab){
   if (tab==='addresses') loadUserAddresses();
   if (tab==='custom') loadUserCustomRequests();
   if (tab==='profile') fillProfileForm();
+  if (tab==='refer') loadDashRefer();
 }
 async function loadUserOrders(){
   const orders = await api.getUserOrders(state.session.user.id);
@@ -1098,6 +1108,7 @@ function goFlashSale(){
 }
 
 async function boot(){
+  captureReferralCode();
   const settingsJob = api.getSettings().then(s => {
     state.settings = s;
     if (s.announcement_text) $('#announceText').textContent = s.announcement_text;
@@ -1217,4 +1228,52 @@ function attachHcSwipe(){
     else if (deltaX > 40) hcPrev();
     hcStartAutoplay();
   });
+}
+function captureReferralCode(){
+  try {
+    const qs = new URLSearchParams(location.search);
+    let ref = qs.get('ref');
+    if (!ref) {
+      const hashQuery = (location.hash.split('?')[1] || '');
+      ref = new URLSearchParams(hashQuery).get('ref');
+    }
+    if (ref) sessionStorage.setItem('kk_ref_code', ref.toUpperCase());
+  } catch(e){}
+}
+async function loadDashRefer(){
+  const host = $('#dashRefer');
+  if (!host) return;
+  host.innerHTML = `<p class="lede-light">Loading…</p>`;
+  try {
+    const info = await api.getMyReferralInfo(state.session.user.id);
+    const link = `${location.origin}${location.pathname}?ref=${info.code}#home`;
+    const waText = encodeURIComponent(`Check out Kanikara — handcrafted gold & diamond jewellery from Jaipur! Use my link to get ₹300 off your first order: ${link}`);
+    host.innerHTML = `
+      <div class="dash-card" style="margin-bottom:24px">
+        <h3 style="font-family:var(--serif);font-size:22px">Refer a friend, you both earn ₹300</h3>
+        <p class="lede-light" style="margin-top:8px">Share your link — jab dost sign up karke apna pehla order place karega, aapko aur unko dono ko ₹300 ka discount coupon milega.</p>
+        <div class="field" style="margin-top:18px">
+          <label>Your referral link</label>
+          <div style="display:flex;gap:10px">
+            <input value="${esc(link)}" readonly style="flex:1">
+            <button class="btn btn-line-dark btn-sm" onclick="copyReferralLink('${esc(link)}')">Copy</button>
+          </div>
+        </div>
+        <a class="btn btn-gold" style="margin-top:14px;display:inline-flex" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">Share on WhatsApp</a>
+      </div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:14px">Your Referrals</h3>
+      ${info.referrals.length ? info.referrals.map(r=>`
+        <div class="dash-card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <b>${esc(r.referred_name)}</b>
+            <span class="status-badge status-${r.status==='completed'?'delivered':'pending'}">${r.status==='completed'?'Reward earned':'Signed up · order pending'}</span>
+          </div>
+          ${r.status==='completed' && r.referrer_coupon_code ? `<p style="margin-top:8px;font-size:13px;color:var(--success);font-weight:700">Your coupon: ${esc(r.referrer_coupon_code)}</p>` : ''}
+        </div>`).join('') : `<p class="lede-light">Abhi tak koi referral nahi hai. Upar wala link share karke shuru karo.</p>`}
+    `;
+  } catch (err) { host.innerHTML = `<p class="lede-light">Could not load referral info.</p>`; console.error(err); }
+}
+function copyReferralLink(link){
+  navigator.clipboard.writeText(link);
+  toast('Referral link copied');
 }
