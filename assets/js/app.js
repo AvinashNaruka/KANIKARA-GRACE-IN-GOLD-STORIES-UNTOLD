@@ -186,7 +186,7 @@ async function removeCartItem(cartItemId){
   toast('Removed from bag');
 }
 function cartTotals(){
-  const subtotal = state.cart.reduce((s,i)=> s + (i.products?.price || 0) * i.quantity, 0);
+  const subtotal = state.cart.reduce((s,i)=> s + effectivePrice(i.products).price * i.quantity, 0);
   const shipping = 0; // shipping is always free
   const discount = state.appliedCoupon?.discount || 0;
   const afterDiscount = Math.max(subtotal - discount, 0) + shipping;
@@ -212,7 +212,7 @@ function renderCartDrawer(){
         <img src="${esc((i.products?.images||[])[0] || placeholderImg())}" alt="">
         <div class="meta">
           <h4>${esc(i.products?.name)}</h4>
-          <div class="price">${money(i.products?.price)}</div>
+          <div class="price">${money(effectivePrice(i.products).price)}</div>
           <div class="qty-box" style="margin-top:8px">
             <button onclick="updateCartQty('${i.id}', ${i.quantity-1})">−</button>
             <span>${i.quantity}</span>
@@ -259,11 +259,12 @@ function stars(avg){
 function productCardHTML(p){
   const img = (p.images && p.images[0]) || placeholderImg();
   const wished = state.wishlistIds.has(p.id);
+  const ep = effectivePrice(p);
   return `
   <div class="p-card">
     <div class="thumb" onclick="goProduct('${p.slug}')" style="cursor:pointer">
       <img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">
-      ${p.badge ? `<span class="tag">${esc(p.badge)}</span>` : (p.is_new_arrival ? `<span class="tag">New</span>` : '')}
+      ${ep.isFlash ? `<span class="tag" style="background:var(--maroon)">Flash Sale</span>` : (p.badge ? `<span class="tag">${esc(p.badge)}</span>` : (p.is_new_arrival ? `<span class="tag">New</span>` : ''))}
       <div class="wish-btn ${wished?'active':''}" data-pid="${p.id}" onclick="event.stopPropagation();toggleWishlist('${p.id}', this)">
         <svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M12 21s-7.5-4.6-10-9.2C.5 8.2 2.3 4.8 5.7 4.2c2-.3 3.9.7 5 2.3.1.1.3.1.4 0 1.1-1.6 3-2.6 5-2.3 3.4.6 5.2 4 3.7 7.6C19.5 16.4 12 21 12 21z"/></svg>
       </div>
@@ -273,8 +274,8 @@ function productCardHTML(p){
       <h3 onclick="goProduct('${p.slug}')" style="cursor:pointer">${esc(p.name)}</h3>
       ${p.rating_count ? `<div class="rating"><span class="stars">${stars(p.rating_avg)}</span> (${p.rating_count})</div>` : ''}
       <div class="price-row">
-        <span class="price">${money(p.price)}</span>
-        ${p.mrp && p.mrp > p.price ? `<span class="mrp">${money(p.mrp)}</span>` : ''}
+        <span class="price">${money(ep.price)}</span>
+        ${ep.mrp && ep.mrp > ep.price ? `<span class="mrp">${money(ep.mrp)}</span>` : ''}
       </div>
       <button class="add" onclick="addToCart('${p.id}')">Add to Bag</button>
     </div>
@@ -420,6 +421,7 @@ async function loadProductPage(slug){
   const p = await api.getProductBySlug(slug);
   if (!p) { $('#pdContent').innerHTML = `<p>Product not found.</p>`; return; }
   state.currentProduct = p;
+  const ep = effectivePrice(p);
   const imgs = (p.images && p.images.length) ? p.images : [placeholderImg()];
     const videoHtml = p.video_url ? `<video src="${esc(p.video_url)}" controls style="width:100%;margin-top:10px;border:1px solid var(--line-light)"></video>` : '';
   const [reviews, related] = await Promise.all([
@@ -438,8 +440,8 @@ async function loadProductPage(slug){
         <h1>${esc(p.name)}</h1>
         ${p.rating_count ? `<div class="rating-line"><span style="color:var(--gold)">${stars(p.rating_avg)}</span> ${p.rating_avg} (${p.rating_count} reviews)</div>` : ''}
         <div class="pd-price">
-          <span class="price">${money(p.price)}</span>
-          ${p.mrp && p.mrp>p.price ? `<span class="mrp">${money(p.mrp)}</span><span class="off">${Math.round((1-p.price/p.mrp)*100)}% OFF</span>` : ''}
+          <span class="price">${money(ep.price)}</span>
+          ${ep.mrp && ep.mrp>ep.price ? `<span class="mrp">${money(ep.mrp)}</span><span class="off">${Math.round((1-ep.price/ep.mrp)*100)}% OFF</span>` : ''}
         </div>
         <div class="pd-specs">
           ${p.material ? `<div><span>Material</span><span>${esc(p.material)}</span></div>`:''}
@@ -619,7 +621,7 @@ function renderCheckoutSummary(){
     <div class="mini-row">
       <img src="${esc((i.products?.images||[])[0]||placeholderImg())}">
       <div style="flex:1"><div style="font-size:13px">${esc(i.products?.name)}</div><div style="font-size:12px;color:rgba(34,31,28,.5)">Qty ${i.quantity}</div></div>
-      <div style="font-size:13px;font-weight:700">${money((i.products?.price||0)*i.quantity)}</div>
+      <div style="font-size:13px;font-weight:700">${money(effectivePrice(i.products).price*i.quantity)}</div>
     </div>`).join('');
   $('#coSubtotal').textContent = money(t.subtotal);
   $('#coShipping').textContent = t.shipping===0?'Free':money(t.shipping);
@@ -695,7 +697,7 @@ async function placeOrder(addr, t, method, paymentStatus, paymentId = null){
     await api.clearCart(state.session.user.id);
         const pointsEarned = Math.round(t.total * 0.02);
     if (pointsEarned > 0) { try { await api.addLoyaltyPoints(state.session.user.id, pointsEarned); } catch(e){ console.error(e); } }
-    renderReceipt(addr, state.cart.map(i=>({name:i.products?.name||i.name, quantity:i.quantity, price:(i.products?.price??i.price)*i.quantity})), t.total);
+    renderReceipt(addr, state.cart.map(i=>({name:i.products?.name||i.name, quantity:i.quantity, price:effectivePrice(i.products||i).price*i.quantity})), t.total);
     state.cart = []; state.appliedCoupon = null; state.appliedGiftCard = null;
     renderCartBadge();
     closePayModal();
@@ -999,6 +1001,29 @@ function populateCatDropdowns(cats){
 }
 
 let flashSaleTimer = null;
+function flashSaleInfo(){
+  const s = state.settings || {};
+  const active = s.flash_sale_active === 'true';
+  const end = s.flash_sale_end ? new Date(s.flash_sale_end).getTime() : null;
+  const pct = Number(s.flash_sale_discount_percent || 0);
+  const tag = s.flash_sale_tag || '';
+  const isLive = !!(active && end && !isNaN(end) && end > Date.now() && pct > 0 && tag);
+  return { isLive, pct, tag, end };
+}
+function isFlashProduct(p){
+  const { isLive, tag } = flashSaleInfo();
+  return isLive && p && Array.isArray(p.tags) && p.tags.includes(tag);
+}
+function effectivePrice(p){
+  if (!p) return { price: 0, mrp: null, isFlash: false };
+  if (isFlashProduct(p)) {
+    const { pct } = flashSaleInfo();
+    const discounted = Math.max(0, Math.round(p.price * (1 - pct / 100)));
+    return { price: discounted, mrp: p.price, isFlash: true };
+  }
+  return { price: p.price, mrp: p.mrp, isFlash: false };
+}
+
 function initFlashSale(s){
   const bar = $('#flashSaleBar');
   if (!bar) return;
@@ -1009,7 +1034,9 @@ function initFlashSale(s){
     bar.classList.add('hide');
     return;
   }
-  $('#flashSaleTitle').textContent = s.flash_sale_title || 'Flash Sale';
+  const pct = Number(s.flash_sale_discount_percent || 0);
+  const baseTitle = s.flash_sale_title || 'Flash Sale';
+  $('#flashSaleTitle').textContent = pct > 0 ? `${baseTitle} — Up to ${pct}% Off` : baseTitle;
   bar.classList.remove('hide');
   const tick = () => {
     const diff = endTime - Date.now();
