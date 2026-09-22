@@ -1080,6 +1080,7 @@ async function boot(){
     initFlashSale(s);
   }).catch(e => console.error(e));
   const authJob = initAuth();
+  loadHeroCarousel();
   await Promise.all([settingsJob, authJob]);
   const rawHash = (location.hash || '#home').slice(1);
   const [hashPath, hashQuery] = rawHash.split('?');
