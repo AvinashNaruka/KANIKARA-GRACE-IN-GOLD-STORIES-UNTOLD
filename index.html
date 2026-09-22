@@ -507,8 +507,9 @@
       <div class="admin-pane hide" data-pane="products">
         <div class="admin-topbar">
           <h1>Products</h1>
-          <div style="display:flex;gap:10px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-line-dark btn-sm" id="adminProdViewToggle" onclick="toggleAdminProductView()">View All</button>
+            <button class="btn btn-line-dark btn-sm" onclick="backfillSerialNumbers()">🔢 Number Old Products</button>
             <button class="btn btn-gold btn-sm" onclick="showAddProduct()">+ Add Product</button>
           </div>
         </div>
