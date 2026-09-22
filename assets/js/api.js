@@ -128,14 +128,16 @@ const api = {
     if (error) throw error;
     return data || [];
   },
-  async addToCart(userId, productId, quantity = 1){
-    const { data: existing } = await sb.from('cart_items').select('*').eq('user_id', userId).eq('product_id', productId).maybeSingle();
-    if (existing) {
-      await sb.from('cart_items').update({ quantity: existing.quantity + quantity, updated_at: new Date().toISOString() }).eq('id', existing.id);
-    } else {
-      await sb.from('cart_items').insert({ user_id: userId, product_id: productId, quantity });
-    }
-  },
+  async addToCart(userId, productId, quantity = 1, variant = null){
+  let q = sb.from('cart_items').select('*').eq('user_id', userId).eq('product_id', productId);
+  q = variant ? q.eq('variant_id', variant.id) : q.is('variant_id', null);
+  const { data: existing } = await q.maybeSingle();
+  if (existing) {
+    await sb.from('cart_items').update({ quantity: existing.quantity + quantity, updated_at: new Date().toISOString() }).eq('id', existing.id);
+  } else {
+    await sb.from('cart_items').insert({ user_id: userId, product_id: productId, quantity, variant_id: variant?.id || null, variant_label: variant?.color_name || null });
+  }
+},
   async updateCartQty(cartItemId, quantity){
     if (quantity < 1) return api.removeCartItem(cartItemId);
     const { error } = await sb.from('cart_items').update({ quantity, updated_at: new Date().toISOString() }).eq('id', cartItemId);
@@ -183,7 +185,7 @@ const api = {
   async createOrder(order, items){
     const { data: created, error } = await sb.from('orders').insert(order).select().single();
     if (error) throw error;
-    const orderItems = items.map(it => {
+        const orderItems = items.map(it => {
       const unit = (typeof effectivePrice === 'function') ? effectivePrice(it.products || it).price : (it.products?.price ?? it.price);
       return {
         order_id: created.id,
@@ -192,8 +194,11 @@ const api = {
         product_image: (it.products?.images || it.images || [])[0] || null,
         quantity: it.quantity,
         unit_price: unit,
-        total_price: unit * it.quantity
+        total_price: unit * it.quantity,
+        variant_id: it.variant_id || null,
+        variant_label: it.variant_label || null
       };
+    });
     });
     const { error: itemErr } = await sb.from('order_items').insert(orderItems);
     if (itemErr) throw itemErr;
