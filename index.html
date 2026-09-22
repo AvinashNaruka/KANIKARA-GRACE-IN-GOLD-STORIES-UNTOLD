@@ -83,8 +83,13 @@
   </div>
 </header>
 
-<!-- ================================== HOME PAGE ================================== -->
 <div class="page active" id="page-home">
+<section class="hero-carousel hide" id="heroCarousel">
+  <div class="hc-track" id="hcTrack"></div>
+  <button class="hc-arrow hc-prev" onclick="hcPrev()" aria-label="Previous">‹</button>
+  <button class="hc-arrow hc-next" onclick="hcNext()" aria-label="Next">›</button>
+  <div class="hc-dots" id="hcDots"></div>
+</section>
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-copy">
@@ -481,6 +486,7 @@
       <a href="#" data-tab="dashboard" class="active" onclick="event.preventDefault();switchAdmin('dashboard')">Dashboard</a>
       <a href="#" data-tab="products" onclick="event.preventDefault();switchAdmin('products')">Products</a>
       <a href="#" data-tab="categories" onclick="event.preventDefault();switchAdmin('categories')">Categories</a>
+      <a href="#" data-tab="banners" onclick="event.preventDefault();switchAdmin('banners')">Banners</a>
       <a href="#" data-tab="materials" onclick="event.preventDefault();switchAdmin('materials')">Materials</a>
       <a href="#" data-tab="orders" onclick="event.preventDefault();switchAdmin('orders')">Orders</a>
       <a href="#" data-tab="coupons" onclick="event.preventDefault();switchAdmin('coupons')">Coupons</a>
@@ -523,6 +529,11 @@
         <div class="admin-topbar"><h1>Categories</h1><button class="btn btn-gold btn-sm" onclick="showAddCat()">+ Add Category</button></div>
         <table class="data"><thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminCatsTbl"></tbody></table>
       </div>
+       <div class="admin-pane hide" data-pane="banners">
+  <div class="admin-topbar"><h1>Hero Banners</h1><button class="btn btn-gold btn-sm" onclick="showAddBanner()">+ Add Banner</button></div>
+  <p class="lede-light" style="margin-bottom:18px">Ye banners homepage ke sabse upar auto-scroll hote hain. Best size: 1920×720px (wide) ya 1080×1350 (mobile-friendly).</p>
+  <table class="data"><thead><tr><th>Img</th><th>Title</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminBannersTbl"></tbody></table>
+</div>
        <div class="admin-pane hide" data-pane="materials">
   <div class="admin-topbar"><h1>Materials</h1></div>
   <div style="display:flex;gap:10px;margin-bottom:20px">
@@ -856,6 +867,31 @@
   </div>
 </div>
 
+<div class="modal" id="bannerModal">
+  <div class="modal-card wide">
+    <button class="modal-close" onclick="$('#bannerModal').classList.remove('open')">✕</button>
+    <h2>Hero Banner</h2>
+    <form id="bannerForm" onsubmit="saveBanner(event)">
+      <input type="hidden" id="bannerFormId">
+      <div class="field">
+        <label>Banner Image</label>
+        <input type="file" accept="image/*" onchange="uploadBannerImage(this)" style="border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
+        <div id="bannerUploadStatus" style="font-size:12px;color:rgba(34,31,28,.55);margin-top:6px"></div>
+        <input id="bannerImage" placeholder="https://… (auto-filled after upload)" style="margin-top:8px">
+      </div>
+      <div class="field"><label>Title (optional)</label><input id="bannerTitle" placeholder="Festive Collection"></div>
+      <div class="field"><label>Subtitle (optional)</label><input id="bannerSubtitle" placeholder="Handcrafted pieces for the season"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Button Text (optional)</label><input id="bannerCta" placeholder="Shop Now"></div>
+        <div class="field"><label>Link (optional)</label><input id="bannerLink" placeholder="#shop or https://…"></div>
+      </div>
+      <div class="field"><label>Sort Order</label><input id="bannerOrder" type="number" value="0"></div>
+      <label class="filter-opt"><input type="checkbox" id="bannerActive" checked> Active / visible</label>
+      <button class="btn btn-gold btn-block" type="submit" style="margin-top:14px">Save Banner</button>
+    </form>
+  </div>
+</div>
+   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
