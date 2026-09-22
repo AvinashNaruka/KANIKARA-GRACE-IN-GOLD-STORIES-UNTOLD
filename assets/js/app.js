@@ -1110,3 +1110,57 @@ async function boot(){
   initScrollReveal();
 }
 document.addEventListener('DOMContentLoaded', boot);
+
+
+let hcState = { banners: [], index: 0, timer: null };
+async function loadHeroCarousel(){
+  try {
+    const banners = await api.getBanners('hero');
+    hcState.banners = banners;
+    renderHeroCarousel();
+  } catch (e) { console.error(e); }
+}
+function renderHeroCarousel(){
+  const wrap = $('#heroCarousel');
+  if (!wrap) return;
+  if (!hcState.banners.length) { wrap.classList.add('hide'); return; }
+  wrap.classList.remove('hide');
+  $('#hcTrack').innerHTML = hcState.banners.map(b => `
+    <div class="hc-slide" onclick="goBanner('${esc(b.link_url||'')}')" style="cursor:${b.link_url?'pointer':'default'}">
+      <img src="${esc(b.image_url)}" alt="${esc(b.title||'')}">
+      ${(b.title||b.subtitle||b.cta_text) ? `
+      <div class="hc-caption">
+        ${b.title ? `<h2>${esc(b.title)}</h2>` : ''}
+        ${b.subtitle ? `<p>${esc(b.subtitle)}</p>` : ''}
+        ${b.cta_text ? `<span class="btn btn-gold">${esc(b.cta_text)}</span>` : ''}
+      </div>` : ''}
+    </div>`).join('');
+  $('#hcDots').innerHTML = hcState.banners.map((_,i)=>`<button class="hc-dot ${i===0?'on':''}" onclick="hcGoTo(${i})"></button>`).join('');
+  hcState.index = 0;
+  hcApply();
+  hcStartAutoplay();
+  $$('.hc-arrow').forEach(a=>a.classList.toggle('hide', hcState.banners.length<2));
+  $('#hcDots').classList.toggle('hide', hcState.banners.length<2);
+}
+function hcApply(){
+  const track = $('#hcTrack'); if (!track) return;
+  track.style.transform = `translateX(-${hcState.index*100}%)`;
+  $$('.hc-dot').forEach((d,i)=>d.classList.toggle('on', i===hcState.index));
+}
+function hcGoTo(i){ hcState.index = i; hcApply(); hcStartAutoplay(); }
+function hcNext(){ hcState.index = (hcState.index+1) % hcState.banners.length; hcApply(); }
+function hcPrev(){ hcState.index = (hcState.index-1+hcState.banners.length) % hcState.banners.length; hcApply(); }
+function hcStartAutoplay(){
+  if (hcState.timer) clearInterval(hcState.timer);
+  if (hcState.banners.length < 2) return;
+  hcState.timer = setInterval(()=>{ hcState.index = (hcState.index+1) % hcState.banners.length; hcApply(); }, 4500);
+}
+function goBanner(url){
+  if (!url) return;
+  if (url.startsWith('#')) {
+    const id = url.slice(1).split('/')[0].split('?')[0];
+    if (PAGES.includes(id)) showPage(id);
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
