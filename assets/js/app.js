@@ -155,20 +155,40 @@ function renderCartBadge(){
   const n = state.cart.reduce((s,i)=>s+i.quantity,0);
   const b = $('#cartBadge'); if (b) { b.textContent = n; b.classList.toggle('hide', n === 0); }
 }
-async function addToCart(productId, qty = 1){
+async function addToCart(productId, qty = 1, variant = null){
   requireAuth(async () => {
-    await api.addToCart(state.session.user.id, productId, qty);
+    await api.addToCart(state.session.user.id, productId, qty, variant);
     await refreshCart();
     toast('Added to bag');
     openCart();
   });
 }
-async function buyNow(productId){
+async function buyNow(productId, variant = null){
   requireAuth(async () => {
-    await api.addToCart(state.session.user.id, productId, 1);
+    await api.addToCart(state.session.user.id, productId, 1, variant);
     await refreshCart();
     showPage('checkout');
   });
+}
+function getSelectedVariant(){ return state.selectedVariant || null; }
+function getPdImages(p, variant){
+  if (variant && variant.images && variant.images.length) return variant.images;
+  return (p.images && p.images.length) ? p.images : [placeholderImg()];
+}
+function selectVariant(vid){
+  const p = state.currentProduct;
+  const v = (p.variants||[]).find(x=>x.id===vid);
+  if (!v) return;
+  state.selectedVariant = v;
+  const imgs = getPdImages(p, v);
+  $('#pdMainImg').src = imgs[0];
+  const thumbsHost = $('.pd-thumbs');
+  if (thumbsHost) {
+    thumbsHost.innerHTML = imgs.map((im,i)=>`<img src="${esc(im)}" class="${i===0?'active':''}" onclick="setPdImg(this,'${esc(im)}')">`).join('') +
+      (p.video_url ? `<video src="${esc(p.video_url)}" controls style="width:100%;margin-top:10px;border:1px solid var(--line-light)"></video>` : '');
+  }
+  $$('.color-swatch').forEach(b=>b.classList.toggle('active', b.dataset.vid===vid));
+  const nameEl = $('#pdVariantName'); if (nameEl) nameEl.textContent = v.color_name;
 }
 function openCart(){ $('#cartDrawer').classList.add('open'); $('#overlay').classList.add('open'); }
 function closeCart(){ $('#cartDrawer')?.classList.remove('open'); if (!anyModalOpen()) $('#overlay')?.classList.remove('open'); }
@@ -216,7 +236,7 @@ function renderCartDrawer(){
       <div class="cart-row">
         <img src="${esc((i.products?.images||[])[0] || placeholderImg())}" alt="">
         <div class="meta">
-          <h4>${esc(i.products?.name)}</h4>
+          <h4>${esc(i.products?.name)}${i.variant_label ? ` <span style="font-weight:400;font-size:11.5px;color:rgba(34,31,28,.5)">— ${esc(i.variant_label)}</span>` : ''}</h4>
           <div class="price">${money(effectivePrice(i.products).price)}</div>
           <div class="qty-box" style="margin-top:8px">
             <button onclick="updateCartQty('${i.id}', ${i.quantity-1})">−</button>
@@ -426,8 +446,9 @@ async function loadProductPage(slug){
   const p = await api.getProductBySlug(slug);
   if (!p) { $('#pdContent').innerHTML = `<p>Product not found.</p>`; return; }
   state.currentProduct = p;
+  state.selectedVariant = (p.variants && p.variants.length) ? p.variants[0] : null;
   const ep = effectivePrice(p);
-  const imgs = (p.images && p.images.length) ? p.images : [placeholderImg()];
+  const imgs = getPdImages(p, state.selectedVariant);
     const videoHtml = p.video_url ? `<video src="${esc(p.video_url)}" controls style="width:100%;margin-top:10px;border:1px solid var(--line-light)"></video>` : '';
   const [reviews, related] = await Promise.all([
     api.getProductReviews(p.id).catch(()=>[]),
@@ -448,6 +469,14 @@ async function loadProductPage(slug){
           <span class="price">${money(ep.price)}</span>
           ${ep.mrp && ep.mrp>ep.price ? `<span class="mrp">${money(ep.mrp)}</span><span class="off">${Math.round((1-ep.price/ep.mrp)*100)}% OFF</span>` : ''}
         </div>
+                ${p.variants && p.variants.length ? `
+        <div class="pd-variants">
+          <span class="pd-variants-label">Colour: <b id="pdVariantName">${esc(state.selectedVariant.color_name)}</b></span>
+          <div class="color-swatches">
+            ${p.variants.map(v=>`
+              <button type="button" class="color-swatch ${state.selectedVariant.id===v.id?'active':''}" data-vid="${v.id}" style="background:${esc(v.color_hex||'#ccc')}" title="${esc(v.color_name)}" onclick="selectVariant('${v.id}')"></button>`).join('')}
+          </div>
+        </div>` : ''}
         <div class="pd-specs">
           ${p.material ? `<div><span>Material</span><span>${esc(p.material)}</span></div>`:''}
           ${p.purity ? `<div><span>Purity</span><span>${esc(p.purity)}</span></div>`:''}
@@ -460,8 +489,8 @@ async function loadProductPage(slug){
           <div class="qty-box"><button onclick="pdQty(-1)">−</button><span id="pdQtyVal">1</span><button onclick="pdQty(1)">+</button></div>
         </div>
         <div class="pd-actions">
-          <button class="btn btn-line-dark btn-block" onclick="addToCart('${p.id}', pdQtyGet())">Add to Bag</button>
-          <button class="btn btn-gold btn-block" onclick="buyNow('${p.id}')">Buy Now</button>
+          <button class="btn btn-line-dark btn-block" onclick="addToCart('${p.id}', pdQtyGet(), getSelectedVariant())">Add to Bag</button>
+          <button class="btn btn-gold btn-block" onclick="buyNow('${p.id}', getSelectedVariant())">Buy Now</button>
         </div>
         <div style="margin-top:14px;display:flex;gap:16px">
           <button class="btn-ghost" onclick="toggleWishlist('${p.id}')">${state.wishlistIds.has(p.id)?'♥ In Wishlist':'♡ Add to Wishlist'}</button>
@@ -625,7 +654,7 @@ function renderCheckoutSummary(){
   $('#coItems').innerHTML = state.cart.map(i=>`
     <div class="mini-row">
       <img src="${esc((i.products?.images||[])[0]||placeholderImg())}">
-      <div style="flex:1"><div style="font-size:13px">${esc(i.products?.name)}</div><div style="font-size:12px;color:rgba(34,31,28,.5)">Qty ${i.quantity}</div></div>
+      <div style="flex:1"><div style="font-size:13px">${esc(i.products?.name)}${i.variant_label ? ` — ${esc(i.variant_label)}` : ''}</div><div style="font-size:12px;color:rgba(34,31,28,.5)">Qty ${i.quantity}</div></div>
       <div style="font-size:13px;font-weight:700">${money(effectivePrice(i.products).price*i.quantity)}</div>
     </div>`).join('');
   $('#coSubtotal').textContent = money(t.subtotal);
