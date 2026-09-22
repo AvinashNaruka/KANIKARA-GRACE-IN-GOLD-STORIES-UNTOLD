@@ -510,7 +510,6 @@ body.admin-mode #page-admin{ display:block; }
 .hc-dot{ width:8px; height:8px; border-radius:50%; background:rgba(247,242,231,.5); transition:all .2s; border:none; }
 .hc-dot.on{ background:var(--gold); width:22px; border-radius:4px; }
 
-/* ---- Mobile: GIVA-style contained card ---- */
 @media(max-width:720px){
   .hero-carousel{ background:var(--ivory); padding:14px 16px 6px; overflow:visible; }
   .hc-slide{ aspect-ratio:4/3.2; }
