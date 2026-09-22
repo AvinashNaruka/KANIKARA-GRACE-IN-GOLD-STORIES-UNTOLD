@@ -388,10 +388,11 @@ async function loadAdminSettings(){
       <label style="font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--charcoal)">⚡ Flash Sale</label>
     </div>
     <div class="field"><label class="filter-opt" style="padding:0"><input type="checkbox" id="set_flash_sale_active" ${settings.flash_sale_active==='true'?'checked':''}> Flash sale active</label></div>
-    <div class="field"><label>Banner Title</label><input id="set_flash_sale_title" placeholder="Festive Flash Sale — Up to 20% Off" value="${esc(settings.flash_sale_title||'')}"></div>
+    <div class="field"><label>Banner Title</label><input id="set_flash_sale_title" placeholder="Festive Flash Sale" value="${esc(settings.flash_sale_title||'')}"></div>
+    <div class="field"><label>Discount % (auto-applies to tagged products' current price)</label><input type="number" min="1" max="90" id="set_flash_sale_discount_percent" placeholder="20" value="${esc(settings.flash_sale_discount_percent||'')}"></div>
     <div class="field"><label>Ends At</label><input type="datetime-local" id="set_flash_sale_end" value="${esc(toLocalDatetimeValue(settings.flash_sale_end))}"></div>
-    <div class="field"><label>Applies to Tag (Products tagged with this show in the sale)</label><input id="set_flash_sale_tag" placeholder="collection:flash-sale" value="${esc(settings.flash_sale_tag||'collection:flash-sale')}">
-      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Tag your discounted products with this exact tag (e.g. from Products → Tags field) and set their Price/MRP there. The banner links straight to those pieces with a live countdown.</div>
+    <div class="field"><label>Applies to Tag (Products tagged with this get the % off)</label><input id="set_flash_sale_tag" placeholder="collection:flash-sale" value="${esc(settings.flash_sale_tag||'collection:flash-sale')}">
+      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Tag your sale products with this exact tag from Products → Tags. No need to touch their Price/MRP — the % above is applied automatically on their current price for as long as the sale is active, and reverts on its own when it ends.</div>
     </div>`;
 }
 function toLocalDatetimeValue(iso){
@@ -402,7 +403,7 @@ function toLocalDatetimeValue(iso){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 async function saveAllSettings(){
-  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag'];
+  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag','flash_sale_discount_percent'];
   try {
     const endVal = $('#set_flash_sale_end').value;
     await Promise.all([
