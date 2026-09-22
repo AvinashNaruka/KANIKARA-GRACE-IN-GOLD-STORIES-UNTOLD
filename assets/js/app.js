@@ -1141,6 +1141,7 @@ function renderHeroCarousel(){
   hcStartAutoplay();
   $$('.hc-arrow').forEach(a=>a.classList.toggle('hide', hcState.banners.length<2));
   $('#hcDots').classList.toggle('hide', hcState.banners.length<2);
+  attachHcSwipe();
 }
 function hcApply(){
   const track = $('#hcTrack'); if (!track) return;
@@ -1163,4 +1164,28 @@ function goBanner(url){
   } else {
     window.open(url, '_blank', 'noopener');
   }
+}
+
+let hcSwipeAttached = false;
+function attachHcSwipe(){
+  const track = $('#hcTrack');
+  if (!track || hcSwipeAttached) return;
+  hcSwipeAttached = true;
+  let startX = 0, deltaX = 0, dragging = false;
+  track.addEventListener('touchstart', e => {
+    if (hcState.banners.length < 2) return;
+    startX = e.touches[0].clientX; deltaX = 0; dragging = true;
+    if (hcState.timer) clearInterval(hcState.timer);
+  }, { passive: true });
+  track.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    deltaX = e.touches[0].clientX - startX;
+  }, { passive: true });
+  track.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    if (deltaX < -40) hcNext();
+    else if (deltaX > 40) hcPrev();
+    hcStartAutoplay();
+  });
 }
