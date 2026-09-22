@@ -37,13 +37,143 @@ async function loadAdminDashboard(){
     `<tr><td colspan="4">No orders yet</td></tr>`;
 }
 
+// ---- Products: category folder view -------------------------------------
+const adminProdState = { mode: 'folders', categoryId: null };
+
 async function loadAdminProducts(){
   const [products, cats] = await Promise.all([api.adminAllProducts(), api.adminAllCategories()]);
   state.categories = cats.length ? cats : state.categories;
   window.__adminCats = cats;
-  $('#adminProductsTbl').innerHTML = products.map(p=>`
+  window.__adminProducts = products;
+  renderAdminProductsView();
+}
+
+function toggleAdminProductView(){
+  adminProdState.mode = (adminProdState.mode === 'all') ? 'folders' : 'all';
+  adminProdState.categoryId = null;
+  renderAdminProductsView();
+}
+function openAdminCategoryFolder(catId){
+  adminProdState.mode = 'category';
+  adminProdState.categoryId = catId; // may be 'uncategorized'
+  renderAdminProductsView();
+}
+function backToAdminFolders(){
+  adminProdState.mode = 'folders';
+  adminProdState.categoryId = null;
+  renderAdminProductsView();
+}
+
+function renderAdminProductsView(){
+  const products = window.__adminProducts || [];
+  const cats = window.__adminCats || [];
+  const foldersEl = $('#adminProdFolders');
+  const catViewEl = $('#adminProdCategoryView');
+  const allViewEl = $('#adminProdAllView');
+  const toggleBtn = $('#adminProdViewToggle');
+  if (!foldersEl || !catViewEl || !allViewEl) return; // markup not on this page yet
+
+  foldersEl.classList.add('hide');
+  catViewEl.classList.add('hide');
+  allViewEl.classList.add('hide');
+
+  if (adminProdState.mode === 'all'){
+    if (toggleBtn) toggleBtn.textContent = '📁 Group by Category';
+    allViewEl.classList.remove('hide');
+    renderAdminProductsTable(products);
+    return;
+  }
+
+  if (adminProdState.mode === 'category'){
+    if (toggleBtn) toggleBtn.textContent = 'View All';
+    catViewEl.classList.remove('hide');
+    const catId = adminProdState.categoryId;
+    const cat = catId && catId !== 'uncategorized' ? cats.find(c=>c.id===catId) : null;
+    const catProducts = catId === 'uncategorized'
+      ? products.filter(p=>!p.category_id)
+      : products.filter(p=>p.category_id===catId);
+    const title = cat ? `${esc(cat.icon||'')} ${esc(cat.name)}` : 'Uncategorised';
+    catViewEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="backToAdminFolders()">← All Categories</button>
+        <h2 style="font-family:var(--serif);font-size:24px">${title}
+          <span style="font-size:14px;color:rgba(34,31,28,.5);font-weight:400">(${catProducts.length} piece${catProducts.length===1?'':'s'})</span>
+        </h2>
+      </div>
+      <div class="p-grid">
+        ${catProducts.length ? catProducts.map(adminProductCardHTML).join('') :
+          `<p class="lede-light" style="grid-column:1/-1">No products in this category yet.</p>`}
+      </div>`;
+    return;
+  }
+
+  // folders (default) view
+  if (toggleBtn) toggleBtn.textContent = 'View All';
+  foldersEl.classList.remove('hide');
+  const countFor = id => products.filter(p=>p.category_id===id).length;
+  const tops = cats.filter(c=>!c.parent_id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const uncategorized = products.filter(p=>!p.category_id);
+
+  const folderTile = (c, sub) => {
+    const total = sub ? countFor(c.id) : countFor(c.id) + cats.filter(ch=>ch.parent_id===c.id).reduce((s,ch)=>s+countFor(ch.id),0);
+    const img = c.image_url || placeholderImg();
+    return `
+    <a class="cat-tile" href="#" onclick="event.preventDefault();openAdminCategoryFolder('${c.id}')" style="${sub?'opacity:.9':''}">
+      <div class="arch-frame" style="aspect-ratio:1/1"><img src="${esc(img)}" alt=""></div>
+      <span style="${sub?'font-size:14px':''}">${sub?'↳ ':''}${esc(c.icon||'')} ${esc(c.name)}</span>
+      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:4px">${total} piece${total===1?'':'s'}</div>
+    </a>`;
+  };
+
+  let html = `<div class="cat-scroll" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));overflow:visible">`;
+  tops.forEach(c => {
+    html += folderTile(c, false);
+    cats.filter(ch=>ch.parent_id===c.id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(ch => { html += folderTile(ch, true); });
+  });
+  if (uncategorized.length){
+    html += `
+    <a class="cat-tile" href="#" onclick="event.preventDefault();openAdminCategoryFolder('uncategorized')">
+      <div class="arch-frame" style="aspect-ratio:1/1"><img src="${placeholderImg()}" alt=""></div>
+      <span>Uncategorised</span>
+      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:4px">${uncategorized.length} piece${uncategorized.length===1?'':'s'}</div>
+    </a>`;
+  }
+  html += `</div>`;
+  if (!tops.length && !uncategorized.length) html = `<p class="lede-light">Add a category first, then your products will be grouped here automatically.</p>`;
+  foldersEl.innerHTML = html;
+}
+
+function adminProductCardHTML(p){
+  const img = (p.images && p.images[0]) || placeholderImg();
+  return `
+  <div class="p-card">
+    <div class="thumb" onclick="editProduct('${p.id}')" style="cursor:pointer">
+      <img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">
+      <span class="tag">${p.serial_no ? esc(p.serial_no) : '—'}</span>
+      ${p.is_active === false ? `<span class="tag" style="left:auto;right:10px;background:var(--danger)">Hidden</span>` : ''}
+    </div>
+    <div class="info">
+      <div class="cat">${esc(p.categories?.name || '')}</div>
+      <h3 onclick="editProduct('${p.id}')" style="cursor:pointer">${esc(p.name)}</h3>
+      <div class="price-row">
+        <span class="price">${money(p.price)}</span>
+        ${p.mrp && p.mrp > p.price ? `<span class="mrp">${money(p.mrp)}</span>` : ''}
+      </div>
+      <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:6px">Stock: ${p.stock_quantity ?? 0}</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="action-btn" style="flex:1" onclick="editProduct('${p.id}')">Edit</button>
+        <button class="action-btn" style="flex:1;color:var(--danger)" onclick="deleteProduct('${p.id}','${esc(p.name)}')">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAdminProductsTable(products){
+  const tbl = $('#adminProductsTbl');
+  if (!tbl) return;
+  tbl.innerHTML = products.map(p=>`
     <tr>
-      <td>#${p.serial_no||'—'}</td>
+      <td>${p.serial_no ? esc(p.serial_no) : '—'}</td>
       <td><img src="${esc((p.images||[])[0]||placeholderImg())}" style="width:42px;height:42px;object-fit:cover"></td>
       <td>${esc(p.name)}</td>
       <td>${esc(p.categories?.name||'—')}</td>
@@ -51,8 +181,26 @@ async function loadAdminProducts(){
       <td>${p.stock_quantity}</td>
       <td>${p.is_active ? '<span class="status-badge status-delivered">Active</span>' : '<span class="status-badge status-cancelled">Hidden</span>'}</td>
       <td><button class="action-btn" onclick="editProduct('${p.id}')">Edit</button> <button class="action-btn" onclick="deleteProduct('${p.id}','${esc(p.name)}')">Delete</button></td>
-    </tr>`).join('') || `<tr><td colspan="7">No products yet. Add your first piece →</td></tr>`;
-  window.__adminProducts = products;
+    </tr>`).join('') || `<tr><td colspan="8">No products yet. Add your first piece →</td></tr>`;
+}
+
+// ---- Category-based serial numbers: e.g. Pendant -> KP001, KP002... -----
+function categoryPrefix(cat){
+  if (!cat || !cat.name) return 'KX';
+  const letter = cat.name.trim().charAt(0).toUpperCase() || 'X';
+  return 'K' + letter;
+}
+function nextSerialNoForCategory(categoryId){
+  const cats = window.__adminCats || state.categories || [];
+  const cat = cats.find(c=>c.id===categoryId);
+  const prefix = categoryPrefix(cat);
+  const products = window.__adminProducts || [];
+  const nums = products
+    .filter(p => p.serial_no && String(p.serial_no).toUpperCase().startsWith(prefix))
+    .map(p => parseInt(String(p.serial_no).slice(prefix.length), 10))
+    .filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return prefix + String(next).padStart(3, '0');
 }
 function showAddProduct(){
   $('#productForm').reset(); $('#productFormId').value = '';
@@ -61,6 +209,16 @@ function showAddProduct(){
     api.getMaterials().then(mats => $('#productMaterial').innerHTML = mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join(''));
   $('#productImgPreview').innerHTML = '';
   $('#productModal').classList.add('open'); $('#overlay').classList.add('open');
+  updateSerialPreview();
+}
+function updateSerialPreview(){
+  const box = $('#serialPreview');
+  if (!box) return;
+  const isEdit = !!$('#productFormId').value;
+  if (isEdit) { box.textContent = ''; return; } // don't renumber existing products
+  const catId = $('#productCat').value;
+  if (!catId) { box.textContent = ''; return; }
+  box.textContent = 'This product will be numbered: ' + nextSerialNoForCategory(catId);
 }
 function compressImage(file, maxDim = 1400, quality = 0.82){
   return new Promise((resolve, reject) => {
@@ -165,6 +323,7 @@ function editProduct(id){
   $('#productFeatured').checked = !!p.is_featured;
   $('#productBestseller').checked = !!p.is_bestseller;
   $('#productActive').checked = p.is_active !== false;
+  updateSerialPreview();
 }
 async function saveProduct(e){
   e.preventDefault();
@@ -188,7 +347,10 @@ async function saveProduct(e){
     is_bestseller: $('#productBestseller').checked,
     is_active: $('#productActive').checked
   };
-  if (!payload.id) payload.slug = slug;
+  if (!payload.id) {
+    payload.slug = slug;
+    payload.serial_no = nextSerialNoForCategory(payload.category_id);
+  }
   try {
     await api.adminSaveProduct(payload);
     toast('Product saved');
