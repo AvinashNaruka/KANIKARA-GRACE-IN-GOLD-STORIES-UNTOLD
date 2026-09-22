@@ -183,15 +183,18 @@ const api = {
   async createOrder(order, items){
     const { data: created, error } = await sb.from('orders').insert(order).select().single();
     if (error) throw error;
-    const orderItems = items.map(it => ({
-      order_id: created.id,
-      product_id: it.product_id,
-      product_name: it.products?.name || it.name,
-      product_image: (it.products?.images || it.images || [])[0] || null,
-      quantity: it.quantity,
-      unit_price: it.products?.price ?? it.price,
-      total_price: (it.products?.price ?? it.price) * it.quantity
-    }));
+    const orderItems = items.map(it => {
+      const unit = (typeof effectivePrice === 'function') ? effectivePrice(it.products || it).price : (it.products?.price ?? it.price);
+      return {
+        order_id: created.id,
+        product_id: it.product_id,
+        product_name: it.products?.name || it.name,
+        product_image: (it.products?.images || it.images || [])[0] || null,
+        quantity: it.quantity,
+        unit_price: unit,
+        total_price: unit * it.quantity
+      };
+    });
     const { error: itemErr } = await sb.from('order_items').insert(orderItems);
     if (itemErr) throw itemErr;
     if (order.coupon_code) {
@@ -244,13 +247,7 @@ const api = {
     return map;
   },
   async updateSetting(key, value){
-    // upsert (not update): if this key doesn't exist yet in site_settings,
-    // a plain .update().eq('key', key) matches 0 rows and silently does
-    // nothing — no error, but nothing saves either. This is exactly what
-    // was happening to the Flash Sale fields. Upsert always works, whether
-    // the row already exists or not.
-    const { error } = await sb.from('site_settings')
-      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    const { error } = await sb.from('site_settings').update({ value, updated_at: new Date().toISOString() }).eq('key', key);
     if (error) throw error;
   },
 
@@ -305,6 +302,19 @@ const api = {
     await sb.from('materials').delete().eq('id', id);
   },
 
+    async getMaterials(){
+    const { data, error } = await sb.from('materials').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+  },
+  async adminSaveMaterial(name){
+    const { error } = await sb.from('materials').insert({ name: name.trim() });
+    if (error) throw error;
+  },
+  async adminDeleteMaterial(id){
+    await sb.from('materials').delete().eq('id', id);
+  },
+  
   async adminAllCategories(){
     const { data, error } = await sb.from('categories').select('*').order('sort_order');
     if (error) throw error;
