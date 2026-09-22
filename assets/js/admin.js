@@ -600,7 +600,7 @@ async function loadAdminSettings(){
       <label style="font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--charcoal)">🎁 Refer & Earn</label>
     </div>
     <div class="field"><label>Discount Amount (₹, both sides get this)</label><input type="number" min="0" id="set_referral_discount_amount" placeholder="300" value="${esc(settings.referral_discount_amount||'300')}"></div>
-    <div class="field"><label>Minimum Order Amount (₹, to use the coupon)</label><input type="number" min="0" id="set_referral_min_order" placeholder="1000" value="${esc(settings.referral_min_order||'1000')}"></div>`;`;
+    <div class="field"><label>Minimum Order Amount (₹, to use the coupon)</label><input type="number" min="0" id="set_referral_min_order" placeholder="1000" value="${esc(settings.referral_min_order||'1000')}"></div>`;
 }
 function toLocalDatetimeValue(iso){
   if (!iso) return '';
