@@ -202,6 +202,44 @@ function nextSerialNoForCategory(categoryId){
   const next = (nums.length ? Math.max(...nums) : 0) + 1;
   return prefix + String(next).padStart(3, '0');
 }
+
+// Backfill: assign category-based serial numbers (KP001, KP002…) to products
+// that were created before this numbering scheme existed.
+async function backfillSerialNumbers(){
+  const products = window.__adminProducts || [];
+  const cats = window.__adminCats || [];
+  if (!products.length) { toast('No products to number', 'err'); return; }
+  if (!confirm('This assigns a fresh serial number (like KP001) to every product based on its category, ordered by when it was added — oldest first. Existing serial numbers will be overwritten. Continue?')) return;
+
+  const groups = {};
+  products.forEach(p => {
+    const key = p.category_id || 'uncategorized';
+    (groups[key] = groups[key] || []).push(p);
+  });
+
+  const updates = [];
+  Object.keys(groups).forEach(key => {
+    const cat = key === 'uncategorized' ? null : cats.find(c=>c.id===key);
+    const prefix = categoryPrefix(cat);
+    const list = groups[key].slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    list.forEach((p, i) => {
+      const code = prefix + String(i + 1).padStart(3, '0');
+      if (p.serial_no !== code) updates.push({ id: p.id, serial_no: code });
+    });
+  });
+
+  if (!updates.length) { toast('All products are already numbered correctly'); return; }
+
+  toast(`Numbering ${updates.length} product(s)…`);
+  try {
+    const results = await Promise.allSettled(updates.map(u => api.adminSaveProduct(u)));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    toast(failed ? `Done, but ${failed} product(s) could not be updated` : `Serial numbers assigned to ${updates.length} product(s) ✓`, failed ? 'err' : '');
+    loadAdminProducts();
+  } catch (err) {
+    toast(err.message || 'Could not assign serial numbers', 'err');
+  }
+}
 function showAddProduct(){
   $('#productForm').reset(); $('#productFormId').value = '';
   $('#productFormTitle').textContent = 'Add Product';
