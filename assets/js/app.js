@@ -192,11 +192,12 @@ function cartTotals(){
     subtotal += ep.price * i.quantity;
     if (ep.isFlash) flashSavings += (ep.mrp - ep.price) * i.quantity;
   });
+  const shipping = 0; // shipping is always free
   const discount = state.appliedCoupon?.discount || 0;
-  const afterDiscount = Math.max(subtotal - discount, 0) ;
+  const afterDiscount = Math.max(subtotal - discount, 0) + shipping;
   const giftCardUsed = state.appliedGiftCard ? Math.min(state.appliedGiftCard.balance, afterDiscount) : 0;
   const total = Math.max(afterDiscount - giftCardUsed, 0);
-  return { subtotal, discount, giftCardUsed, total, flashSavings };
+  return { subtotal, shipping, discount, giftCardUsed, total, flashSavings };
 }
 async function applyGiftCard(){
   const code = $('#giftCardInput').value.trim();
