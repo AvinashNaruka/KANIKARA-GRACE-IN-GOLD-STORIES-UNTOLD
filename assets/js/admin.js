@@ -247,6 +247,8 @@ function showAddProduct(){
     api.getMaterials().then(mats => $('#productMaterial').innerHTML = mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join(''));
   $('#productImgPreview').innerHTML = '';
   $('#productModal').classList.add('open'); $('#overlay').classList.add('open');
+    window.__productVariants = [];
+  renderVariantList();
   updateSerialPreview();
 }
 function updateSerialPreview(){
@@ -383,7 +385,8 @@ async function saveProduct(e){
     tags: $('#productTags').value.split(',').map(s=>s.trim()).filter(Boolean),
     is_featured: $('#productFeatured').checked,
     is_bestseller: $('#productBestseller').checked,
-    is_active: $('#productActive').checked
+    is_active: $('#productActive').checked, is_active: $('#productActive').checked,
+    variants: window.__productVariants || []
   };
   if (!payload.id) {
     payload.slug = slug;
@@ -823,4 +826,65 @@ async function deleteBanner(id){
   if (!confirm('Delete this banner?')) return;
   try { await api.adminDeleteBanner(id); toast('Banner deleted'); loadAdminBanners(); }
   catch (err) { toast(err.message||'Could not delete', 'err'); }
+}
+
+function renderVariantList(){
+  const host = $('#variantList');
+  if (!host) return;
+  const list = window.__productVariants || [];
+  host.innerHTML = list.map(v => `
+    <div class="variant-card">
+      <div class="variant-swatch" style="background:${esc(v.color_hex||'#ccc')}"></div>
+      <div class="variant-body">
+        <input value="${esc(v.color_name)}" onchange="renameVariant('${v.id}', this.value)">
+        <input type="file" accept="image/*" multiple onchange="uploadVariantImage('${v.id}', this)" style="margin-top:8px;border:1px dashed var(--gold-line);padding:8px;background:var(--ivory);font-size:12px">
+        <div class="variant-imgs">
+          ${(v.images||[]).map((img,i)=>`
+            <div><img src="${esc(img)}"><button type="button" class="variant-remove-img" onclick="removeVariantImage('${v.id}',${i})">✕</button></div>`).join('')}
+        </div>
+      </div>
+      <button type="button" class="action-btn" style="color:var(--danger)" onclick="removeVariant('${v.id}')">Remove</button>
+    </div>`).join('') || '';
+}
+function addVariantRow(){
+  const name = $('#variantColorName').value.trim();
+  if (!name) return toast('Color name daalo', 'err');
+  const hex = $('#variantColorPicker').value;
+  window.__productVariants = window.__productVariants || [];
+  window.__productVariants.push({ id: 'v_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), color_name: name, color_hex: hex, images: [] });
+  $('#variantColorName').value = '';
+  renderVariantList();
+}
+function renameVariant(id, name){
+  const v = (window.__productVariants||[]).find(x=>x.id===id);
+  if (v) v.color_name = name.trim();
+}
+function removeVariant(id){
+  window.__productVariants = (window.__productVariants||[]).filter(x=>x.id!==id);
+  renderVariantList();
+}
+async function uploadVariantImage(variantId, input){
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const v = (window.__productVariants||[]).find(x=>x.id===variantId);
+  if (!v) return;
+  for (const original of files) {
+    try {
+      const file = await compressImage(original).catch(() => original);
+      const path = `variant-${Date.now()}-${Math.random().toString(36).slice(2,8)}-${file.name.replace(/[^a-zA-Z0-9.]+/g,'-')}`;
+      const { error } = await sb.storage.from('product-images').upload(path, file, { cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      const { data } = sb.storage.from('product-images').getPublicUrl(path);
+      v.images = v.images || [];
+      v.images.push(data.publicUrl);
+    } catch (err) { toast(`Could not upload: ${err.message||'unknown error'}`, 'err'); }
+  }
+  renderVariantList();
+  input.value = '';
+}
+function removeVariantImage(variantId, idx){
+  const v = (window.__productVariants||[]).find(x=>x.id===variantId);
+  if (!v) return;
+  v.images.splice(idx,1);
+  renderVariantList();
 }
