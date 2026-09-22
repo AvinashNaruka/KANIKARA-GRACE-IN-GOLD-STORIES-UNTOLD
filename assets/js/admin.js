@@ -15,7 +15,7 @@ function switchAdmin(tab){
   $$('.admin-side a').forEach(a=>a.classList.toggle('active', a.dataset.tab===tab));
   $$('.admin-pane').forEach(p=>p.classList.toggle('hide', p.dataset.pane!==tab));
   const loaders = {
-    dashboard: loadAdminDashboard, products: loadAdminProducts, categories: loadAdminCats, materials: loadAdminMaterials,
+    dashboard: loadAdminDashboard, products: loadAdminProducts, categories: loadAdminCats,banners: loadAdminBanners, materials: loadAdminMaterials,
     orders: loadAdminOrders, coupons: loadAdminCoupons, custom: loadAdminCustom,
     reviews: loadAdminReviews, customers: loadAdminCustomers, settings: loadAdminSettings,
     giftcards: loadAdminGiftCards, corporate: loadAdminCorporate, plans: loadAdminPlans,
@@ -751,4 +751,76 @@ async function deletePress(id){
   if (!confirm('Delete this press mention?')) return;
   try { await api.adminDeletePressMention(id); toast('Deleted'); loadAdminPress(); }
   catch (err) { toast(err.message||'Could not delete','err'); }
+}
+
+async function loadAdminBanners(){
+  const rows = await api.adminAllBanners();
+  window.__adminBanners = rows;
+  $('#adminBannersTbl').innerHTML = rows.map(b=>`
+    <tr>
+      <td><img src="${esc(b.image_url)}" style="width:70px;height:40px;object-fit:cover"></td>
+      <td>${esc(b.title||'—')}</td>
+      <td>${b.sort_order}</td>
+      <td>${b.is_active?'<span class="status-badge status-delivered">Active</span>':'<span class="status-badge status-cancelled">Hidden</span>'}</td>
+      <td><button class="action-btn" onclick="editBanner('${b.id}')">Edit</button> <button class="action-btn" style="color:var(--danger)" onclick="deleteBanner('${b.id}')">Delete</button></td>
+    </tr>`).join('') || `<tr><td colspan="5">No banners yet — add one to activate the homepage carousel.</td></tr>`;
+}
+function showAddBanner(){
+  $('#bannerForm').reset(); $('#bannerFormId').value = '';
+  $('#bannerUploadStatus').textContent = '';
+  $('#bannerModal').classList.add('open'); $('#overlay').classList.add('open');
+}
+function editBanner(id){
+  const b = (window.__adminBanners||[]).find(x=>x.id===id); if (!b) return;
+  showAddBanner();
+  $('#bannerFormId').value = b.id;
+  $('#bannerImage').value = b.image_url || '';
+  $('#bannerTitle').value = b.title || '';
+  $('#bannerSubtitle').value = b.subtitle || '';
+  $('#bannerCta').value = b.cta_text || '';
+  $('#bannerLink').value = b.link_url || '';
+  $('#bannerOrder').value = b.sort_order || 0;
+  $('#bannerActive').checked = b.is_active !== false;
+}
+async function uploadBannerImage(input){
+  const file = input.files?.[0];
+  if (!file) return;
+  const status = $('#bannerUploadStatus');
+  status.textContent = 'Uploading…';
+  try {
+    const compressed = await compressImage(file, 1920, 0.85).catch(()=>file);
+    const path = `banner-${Date.now()}-${compressed.name.replace(/[^a-zA-Z0-9.]+/g,'-')}`;
+    const { error } = await sb.storage.from('product-images').upload(path, compressed, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data } = sb.storage.from('product-images').getPublicUrl(path);
+    $('#bannerImage').value = data.publicUrl;
+    status.textContent = 'Uploaded ✓';
+  } catch (err) { toast(`Could not upload: ${err.message||'unknown error'}`, 'err'); }
+  input.value = '';
+}
+async function saveBanner(e){
+  e.preventDefault();
+  if (!$('#bannerImage').value.trim()) return toast('Please upload a banner image', 'err');
+  const payload = {
+    id: $('#bannerFormId').value || undefined,
+    image_url: $('#bannerImage').value.trim(),
+    title: $('#bannerTitle').value.trim(),
+    subtitle: $('#bannerSubtitle').value.trim(),
+    cta_text: $('#bannerCta').value.trim(),
+    link_url: $('#bannerLink').value.trim(),
+    position: 'hero',
+    sort_order: Number($('#bannerOrder').value || 0),
+    is_active: $('#bannerActive').checked
+  };
+  try {
+    await api.adminSaveBanner(payload);
+    toast('Banner saved');
+    $('#bannerModal').classList.remove('open');
+    loadAdminBanners();
+  } catch (err) { toast(err.message||'Could not save banner', 'err'); }
+}
+async function deleteBanner(id){
+  if (!confirm('Delete this banner?')) return;
+  try { await api.adminDeleteBanner(id); toast('Banner deleted'); loadAdminBanners(); }
+  catch (err) { toast(err.message||'Could not delete', 'err'); }
 }
