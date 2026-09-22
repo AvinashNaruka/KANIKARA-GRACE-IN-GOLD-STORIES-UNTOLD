@@ -182,10 +182,10 @@ const api = {
     return { valid: true, coupon: data, discount: Math.round(discount) };
   },
   
-  async createOrder(order, items){
+    async createOrder(order, items){
     const { data: created, error } = await sb.from('orders').insert(order).select().single();
     if (error) throw error;
-        const orderItems = items.map(it => {
+    const orderItems = items.map(it => {
       const unit = (typeof effectivePrice === 'function') ? effectivePrice(it.products || it).price : (it.products?.price ?? it.price);
       return {
         order_id: created.id,
@@ -198,7 +198,6 @@ const api = {
         variant_id: it.variant_id || null,
         variant_label: it.variant_label || null
       };
-    });
     });
     const { error: itemErr } = await sb.from('order_items').insert(orderItems);
     if (itemErr) throw itemErr;
