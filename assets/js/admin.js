@@ -596,7 +596,11 @@ async function loadAdminSettings(){
     <div class="field"><label>Ends At</label><input type="datetime-local" id="set_flash_sale_end" value="${esc(toLocalDatetimeValue(settings.flash_sale_end))}"></div>
     <div class="field"><label>Applies to Tag (Products tagged with this get the % off)</label><input id="set_flash_sale_tag" placeholder="collection:flash-sale" value="${esc(settings.flash_sale_tag||'collection:flash-sale')}">
       <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Tag your sale products with this exact tag from Products → Tags. No need to touch their Price/MRP — the % above is applied automatically on their current price for as long as the sale is active, and reverts on its own when it ends.</div>
-    </div>`;
+    </div>+     `<div class="field" style="grid-column:1/-1;border-top:1px solid var(--line-light);padding-top:16px;margin-top:4px">
+      <label style="font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--charcoal)">🎁 Refer & Earn</label>
+    </div>
+    <div class="field"><label>Discount Amount (₹, both sides get this)</label><input type="number" min="0" id="set_referral_discount_amount" placeholder="300" value="${esc(settings.referral_discount_amount||'300')}"></div>
+    <div class="field"><label>Minimum Order Amount (₹, to use the coupon)</label><input type="number" min="0" id="set_referral_min_order" placeholder="1000" value="${esc(settings.referral_min_order||'1000')}"></div>`;`;
 }
 function toLocalDatetimeValue(iso){
   if (!iso) return '';
@@ -606,7 +610,7 @@ function toLocalDatetimeValue(iso){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 async function saveAllSettings(){
-  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag','flash_sale_discount_percent'];
+  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag','flash_sale_discount_percent','referral_discount_amount','referral_min_order'];
   try {
     const endVal = $('#set_flash_sale_end').value;
     await Promise.all([
