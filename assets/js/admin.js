@@ -385,7 +385,7 @@ async function saveProduct(e){
     tags: $('#productTags').value.split(',').map(s=>s.trim()).filter(Boolean),
     is_featured: $('#productFeatured').checked,
     is_bestseller: $('#productBestseller').checked,
-    is_active: $('#productActive').checked, is_active: $('#productActive').checked,
+    is_active: $('#productActive').checked,
     variants: window.__productVariants || []
   };
   if (!payload.id) {
@@ -596,7 +596,8 @@ async function loadAdminSettings(){
     <div class="field"><label>Ends At</label><input type="datetime-local" id="set_flash_sale_end" value="${esc(toLocalDatetimeValue(settings.flash_sale_end))}"></div>
     <div class="field"><label>Applies to Tag (Products tagged with this get the % off)</label><input id="set_flash_sale_tag" placeholder="collection:flash-sale" value="${esc(settings.flash_sale_tag||'collection:flash-sale')}">
       <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Tag your sale products with this exact tag from Products → Tags. No need to touch their Price/MRP — the % above is applied automatically on their current price for as long as the sale is active, and reverts on its own when it ends.</div>
-    </div>+     `<div class="field" style="grid-column:1/-1;border-top:1px solid var(--line-light);padding-top:16px;margin-top:4px">
+    </div>
+    <div class="field" style="grid-column:1/-1;border-top:1px solid var(--line-light);padding-top:16px;margin-top:4px">
       <label style="font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--charcoal)">🎁 Refer & Earn</label>
     </div>
     <div class="field"><label>Discount Amount (₹, both sides get this)</label><input type="number" min="0" id="set_referral_discount_amount" placeholder="300" value="${esc(settings.referral_discount_amount||'300')}"></div>
