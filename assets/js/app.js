@@ -186,13 +186,18 @@ async function removeCartItem(cartItemId){
   toast('Removed from bag');
 }
 function cartTotals(){
-  const subtotal = state.cart.reduce((s,i)=> s + effectivePrice(i.products).price * i.quantity, 0);
+  let subtotal = 0, flashSavings = 0;
+  state.cart.forEach(i => {
+    const ep = effectivePrice(i.products);
+    subtotal += ep.price * i.quantity;
+    if (ep.isFlash) flashSavings += (ep.mrp - ep.price) * i.quantity;
+  });
   const shipping = 0; // shipping is always free
   const discount = state.appliedCoupon?.discount || 0;
   const afterDiscount = Math.max(subtotal - discount, 0) + shipping;
   const giftCardUsed = state.appliedGiftCard ? Math.min(state.appliedGiftCard.balance, afterDiscount) : 0;
   const total = Math.max(afterDiscount - giftCardUsed, 0);
-  return { subtotal, shipping, discount, giftCardUsed, total };
+  return { subtotal, shipping, discount, giftCardUsed, total, flashSavings };
 }
 async function applyGiftCard(){
   const code = $('#giftCardInput').value.trim();
@@ -624,10 +629,14 @@ function renderCheckoutSummary(){
       <div style="font-size:13px;font-weight:700">${money(effectivePrice(i.products).price*i.quantity)}</div>
     </div>`).join('');
   $('#coSubtotal').textContent = money(t.subtotal);
+  const flashRow = $('#coFlashRow');
+  if (flashRow) { flashRow.style.display = t.flashSavings > 0 ? 'flex' : 'none'; $('#coFlashSavings').textContent = t.flashSavings > 0 ? '−'+money(t.flashSavings) : '—'; }
   $('#coShipping').textContent = t.shipping===0?'Free':money(t.shipping);
+  const codRow = $('#coCodFeeRow');
+  if (codRow) { codRow.style.display = codFee ? 'flex' : 'none'; $('#coCodFeeVal').textContent = money(codFee); }
   $('#coDiscount').textContent = t.discount ? '−'+money(t.discount) : '—';
   $('#coGiftCard').textContent = t.giftCardUsed ? '−'+money(t.giftCardUsed) : '—';
-  $('#coCodRow').style.display = codFee ? 'flex' : 'none';
+  $('#coCodRow') && ($('#coCodRow').style.display = codFee ? 'flex' : 'none');
   $('#coTotal').textContent = money(t.total + codFee);
 }
 async function proceedCheckout(){
