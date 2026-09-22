@@ -729,6 +729,16 @@
         <label>Tags (comma separated — powers Shop filters)</label>
         <input id="productTags" placeholder="occasion:wedding, theme:evil-eye, recipient:for-her, metal:silver, audience:her">
         <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Use "group:value" format. Common groups: occasion, theme, recipient, metal, colour, style, collection, audience (her/him — powers Gift Store).</div>
+               <div class="field">
+        <label>Color Variants (optional)</label>
+        <div id="variantList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
+          <input type="color" id="variantColorPicker" value="#C9A24B" style="width:40px;height:36px;border:none;padding:0;background:none">
+          <input id="variantColorName" placeholder="Color name e.g. Rose Gold">
+          <button type="button" class="btn btn-line-dark btn-sm" onclick="addVariantRow()">+ Add</button>
+        </div>
+        <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Har color add karke uske photos upload karo. Customer ko product page pe ye swatches (dots) dikhenge.</div>
+      </div>
       </div>
       <label class="filter-opt"><input type="checkbox" id="productFeatured"> Featured on homepage</label>
       <label class="filter-opt"><input type="checkbox" id="productBestseller"> Mark as bestseller</label>
