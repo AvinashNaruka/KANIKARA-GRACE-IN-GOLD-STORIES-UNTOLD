@@ -527,4 +527,26 @@ async adminSaveBanner(payload){
   else { const { error } = await sb.from('banners').insert(payload); if (error) throw error; }
 },
 async adminDeleteBanner(id){ await sb.from('banners').delete().eq('id', id); }
+
+,
+async getMyReferralInfo(userId){
+  const { data: profile } = await sb.from('profiles').select('referral_code').eq('id', userId).maybeSingle();
+  const { data: refs, error } = await sb.from('referrals').select('*').eq('referrer_id', userId).order('created_at', { ascending:false });
+  if (error) throw error;
+  const ids = (refs||[]).map(r=>r.referred_id).filter(Boolean);
+  let namesMap = {};
+  if (ids.length) {
+    const { data: profs } = await sb.from('profiles').select('id, full_name').in('id', ids);
+    (profs||[]).forEach(p=>namesMap[p.id]=p.full_name);
+  }
+  return { code: profile?.referral_code || null, referrals: (refs||[]).map(r=>({...r, referred_name: namesMap[r.referred_id] || 'New Customer'})) };
+},
+async recordReferralSignup(referrerCode, referredId, referredEmail){
+  const { data, error } = await sb.rpc('record_referral_signup', { p_referrer_code: referrerCode, p_referred_id: referredId, p_referred_email: referredEmail });
+  if (error) throw error;
+  return data;
+},
+async rewardReferrerOnFirstOrder(userId){
+  try { await sb.rpc('reward_referrer_on_first_order', { p_user_id: userId }); } catch(e){ console.error(e); }
+},
 };
