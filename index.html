@@ -446,7 +446,9 @@
       <h3 style="font-family:var(--serif);font-size:19px;margin-bottom:14px">Order Summary</h3>
       <div id="coItems"></div>
       <div class="sum-row"><span>Subtotal</span><span id="coSubtotal">₹0</span></div>
+      <div class="sum-row" id="coFlashRow" style="display:none;color:var(--maroon)"><span>Flash Sale Savings</span><span id="coFlashSavings">—</span></div>
       <div class="sum-row"><span>Shipping</span><span id="coShipping">Free</span></div>
+      <div class="sum-row" id="coCodFeeRow" style="display:none"><span>COD Charge</span><span id="coCodFeeVal">₹250</span></div>
       <div class="sum-row"><span>Discount</span><span id="coDiscount">—</span></div>
       <div class="sum-row"><span>Gift Card</span><span id="coGiftCard">—</span></div>
       <div class="sum-row total"><span>Total</span><span id="coTotal">₹0</span></div>
@@ -845,6 +847,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/payment-config.js"></script>
 <script src="assets/js/api.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/admin.js"></script>
