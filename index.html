@@ -505,8 +505,18 @@
         </div>
       </div>
       <div class="admin-pane hide" data-pane="products">
-        <div class="admin-topbar"><h1>Products</h1><button class="btn btn-gold btn-sm" onclick="showAddProduct()">+ Add Product</button></div>
-        <table class="data"><thead><tr><th>Sr.No</th><th>Img</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminProductsTbl"></tbody></table>
+        <div class="admin-topbar">
+          <h1>Products</h1>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-line-dark btn-sm" id="adminProdViewToggle" onclick="toggleAdminProductView()">View All</button>
+            <button class="btn btn-gold btn-sm" onclick="showAddProduct()">+ Add Product</button>
+          </div>
+        </div>
+        <div id="adminProdFolders"></div>
+        <div id="adminProdCategoryView" class="hide"></div>
+        <div id="adminProdAllView" class="hide">
+          <table class="data"><thead><tr><th>Sr.No</th><th>Img</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminProductsTbl"></tbody></table>
+        </div>
       </div>
       <div class="admin-pane hide" data-pane="categories">
         <div class="admin-topbar"><h1>Categories</h1><button class="btn btn-gold btn-sm" onclick="showAddCat()">+ Add Category</button></div>
@@ -698,7 +708,9 @@
     <form id="productForm" onsubmit="saveProduct(event)" style="max-height:70vh;overflow-y:auto">
       <input type="hidden" id="productFormId">
       <div class="field"><label>Name</label><input id="productName" required></div>
-      <div class="field"><label>Category</label><select id="productCat"></select></div>
+      <div class="field"><label>Category</label><select id="productCat" onchange="updateSerialPreview()"></select>
+        <div id="serialPreview" style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px"></div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="field"><label>Price (₹)</label><input id="productPrice" type="number" required></div>
         <div class="field"><label>MRP (₹)</label><input id="productMrp" type="number"></div>
