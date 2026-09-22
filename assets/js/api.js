@@ -511,4 +511,16 @@ const api = {
     else { const { error } = await sb.from('press_mentions').insert(payload); if (error) throw error; }
   },
   async adminDeletePressMention(id){ await sb.from('press_mentions').delete().eq('id', id); }
+
+  ,
+async adminAllBanners(){
+  const { data, error } = await sb.from('banners').select('*').order('sort_order');
+  if (error) throw error;
+  return data || [];
+},
+async adminSaveBanner(payload){
+  if (payload.id) { const { error } = await sb.from('banners').update(payload).eq('id', payload.id); if (error) throw error; }
+  else { const { error } = await sb.from('banners').insert(payload); if (error) throw error; }
+},
+async adminDeleteBanner(id){ await sb.from('banners').delete().eq('id', id); }
 };
