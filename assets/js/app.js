@@ -1209,10 +1209,7 @@ function renderHeroCarousel(){
 }
 function hcApply(){
   try {
-    const track = $('#hcTrack'); if (!track) return;
-    const carousel = $('#heroCarousel');
-    const w = (carousel && carousel.clientWidth) || (track.parentElement && track.parentElement.clientWidth) || 0;
-    track.style.transform = `translateX(-${hcState.index * w}px)`;
+    $$('#hcTrack .hc-slide').forEach((el,i)=> el.classList.toggle('active', i===hcState.index));
     $$('.hc-dot').forEach((d,i)=>d.classList.toggle('on', i===hcState.index));
   } catch (e) { console.error('hcApply failed', e); }
 }
@@ -1257,7 +1254,7 @@ function attachHcSwipe(){
     hcStartAutoplay();
   });
 }
-window.addEventListener('resize', () => { if (hcState.banners.length) hcApply(); });
+
 
 function captureReferralCode(){
   try {
