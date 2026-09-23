@@ -1185,7 +1185,8 @@ function renderHeroCarousel(){
 }
 function hcApply(){
   const track = $('#hcTrack'); if (!track) return;
-  track.style.transform = `translateX(-${hcState.index*100}%)`;
+  const w = wrap.clientWidth;
+  track.style.transform = `translateX(-${hcState.index * w}px)`;
   $$('.hc-dot').forEach((d,i)=>d.classList.toggle('on', i===hcState.index));
 }
 function hcGoTo(i){ hcState.index = i; hcApply(); hcStartAutoplay(); }
