@@ -79,11 +79,37 @@
       <a href="#shop" onclick="event.preventDefault();showPage('shop');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Shop</a>
       <a href="#custom-order" onclick="event.preventDefault();showPage('custom-order');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Custom Orders</a>
       <a href="#dashboard" onclick="event.preventDefault();showPage('dashboard');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">My Orders</a>
+      <a href="#" onclick="event.preventDefault();(state.session ? showPage('dashboard') : openAuth('login'));toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Account</a>
     </nav>
   </div>
 </header>
 
 <div class="page active" id="page-home">
+<div class="mobile-quickbar" id="mobileQuickbar">
+  <button class="mq-pincode" onclick="openPincodePrompt()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-4.35-7-10a7 7 0 0 1 14 0c0 5.65-7 10-7 10z"/><circle cx="12" cy="11" r="2.4"/></svg>
+    <span id="mqPincodeText">Update Delivery Pincode</span>
+    <svg class="mq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <form class="mq-search" onsubmit="doSearchMobile(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="mqSearchInput" placeholder='Search "Gifts For Her"'>
+  </form>
+  <div class="mq-links">
+    <a href="#shop" onclick="event.preventDefault();showPage('shop')">
+      <span class="mq-ic">🗂️</span><span>Categories</span>
+    </a>
+    <a href="#gift-store" onclick="event.preventDefault();showPage('gift-store')">
+      <span class="mq-ic">🎁</span><span>Gift Store</span>
+    </a>
+    <a href="#custom-order" onclick="event.preventDefault();showPage('custom-order')">
+      <span class="mq-ic">✧</span><span>Custom Order</span>
+    </a>
+    <a href="#smart-plan" onclick="event.preventDefault();showPage('smart-plan')">
+      <span class="mq-ic">💰</span><span>Smart Plan</span>
+    </a>
+  </div>
+</div>
 <section class="hero-carousel hide" id="heroCarousel">
   <div class="hc-track" id="hcTrack"></div>
   <button class="hc-arrow hc-prev" onclick="hcPrev()" aria-label="Previous">‹</button>
