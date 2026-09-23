@@ -448,6 +448,12 @@ function doSearch(e){
   state.filters.search = $('#searchInput').value.trim();
   showPage('shop');
 }
+function doSearchMobile(e){
+  if (e) e.preventDefault();
+  const val = $('#mqSearchInput')?.value.trim() || '';
+  state.filters.search = val;
+  showPage('shop');
+}
 
 async function loadProductPage(slug){
   $('#pdContent').innerHTML = `<div class="skeleton" style="height:400px"></div>`;
@@ -1107,6 +1113,23 @@ function goFlashSale(){
   if (tag) filterByTag(tag); else showPage('shop');
 }
 
+function openPincodePrompt(){
+  const current = localStorage.getItem('kk_pincode') || '';
+  const val = prompt('Enter your delivery pincode', current);
+  if (val === null) return;
+  const clean = val.trim();
+  if (!/^\d{6}$/.test(clean)) { toast('Please enter a valid 6-digit pincode', 'err'); return; }
+  localStorage.setItem('kk_pincode', clean);
+  updatePincodeDisplay();
+  toast('Delivery pincode updated');
+}
+function updatePincodeDisplay(){
+  const el = $('#mqPincodeText');
+  if (!el) return;
+  const saved = localStorage.getItem('kk_pincode');
+  el.textContent = saved ? `Delivering to ${saved}` : 'Update Delivery Pincode';
+}
+
 async function boot(){
   captureReferralCode();
   const settingsJob = api.getSettings().then(s => {
@@ -1121,6 +1144,7 @@ async function boot(){
   }).catch(e => console.error(e));
   const authJob = initAuth();
   loadHeroCarousel();
+  updatePincodeDisplay();
   await Promise.all([settingsJob, authJob]);
   const rawHash = (location.hash || '#home').slice(1);
   const [hashPath, hashQuery] = rawHash.split('?');
@@ -1184,13 +1208,17 @@ function renderHeroCarousel(){
   attachHcSwipe();
 }
 function hcApply(){
-  const w = wrap.clientWidth;
-  track.style.transform = `translateX(-${hcState.index * w}px)`;
-  $$('.hc-dot').forEach((d,i)=>d.classList.toggle('on', i===hcState.index));
+  try {
+    const track = $('#hcTrack'); if (!track) return;
+    const carousel = $('#heroCarousel');
+    const w = (carousel && carousel.clientWidth) || (track.parentElement && track.parentElement.clientWidth) || 0;
+    track.style.transform = `translateX(-${hcState.index * w}px)`;
+    $$('.hc-dot').forEach((d,i)=>d.classList.toggle('on', i===hcState.index));
+  } catch (e) { console.error('hcApply failed', e); }
 }
 function hcGoTo(i){ hcState.index = i; hcApply(); hcStartAutoplay(); }
-function hcNext(){ hcState.index = (hcState.index+1) % hcState.banners.length; hcApply(); }
-function hcPrev(){ hcState.index = (hcState.index-1+hcState.banners.length) % hcState.banners.length; hcApply(); }
+function hcNext(){ if (!hcState.banners.length) return; hcState.index = (hcState.index+1) % hcState.banners.length; hcApply(); }
+function hcPrev(){ if (!hcState.banners.length) return; hcState.index = (hcState.index-1+hcState.banners.length) % hcState.banners.length; hcApply(); }
 function hcStartAutoplay(){
   if (hcState.timer) clearInterval(hcState.timer);
   if (hcState.banners.length < 2) return;
@@ -1229,6 +1257,8 @@ function attachHcSwipe(){
     hcStartAutoplay();
   });
 }
+window.addEventListener('resize', () => { if (hcState.banners.length) hcApply(); });
+
 function captureReferralCode(){
   try {
     const qs = new URLSearchParams(location.search);
