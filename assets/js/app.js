@@ -820,6 +820,12 @@ async function loadUserOrders(){
         <div><b>${esc(o.order_number)}</b><div style="font-size:12px;color:rgba(34,31,28,.5)">${new Date(o.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ${o.order_items.length} item(s)</div></div>
         <div style="text-align:right"><span class="status-badge status-${o.status}">${o.status.replace(/_/g,' ')}</span><div style="margin-top:6px;font-weight:800">${money(o.total_amount)}</div></div>
       </div>
+      ${(o.courier_name || o.tracking_number || o.tracking_url) ? `
+      <div style="margin-top:10px;padding:10px 12px;background:var(--ivory);border:1px solid var(--line-light);font-size:12.5px;color:rgba(34,31,28,.75)">
+        🚚 ${o.courier_name ? `Shipped via <b>${esc(o.courier_name)}</b>` : 'Shipment info'}
+        ${o.tracking_number ? ` &nbsp;·&nbsp; Tracking No: <b>${esc(o.tracking_number)}</b>` : ''}
+        ${o.tracking_url ? ` &nbsp;·&nbsp; <a href="${esc(o.tracking_url)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline">Track shipment →</a>` : ''}
+      </div>` : ''}
       <button class="action-btn" style="margin-top:10px" onclick="downloadInvoice('${o.id}')">📄 Download Invoice</button>
       ${o.status==='pending' ? `<button class="action-btn" style="margin-top:10px;margin-left:8px;color:var(--danger)" onclick="cancelMyOrder('${o.id}')">✕ Cancel Order</button>` : ''}
     </div>`).join('') : `<p class="lede-light">No orders yet. <a href="#shop" onclick="showPage('shop')" style="color:var(--gold);text-decoration:underline">Start shopping →</a></p>`;
@@ -866,7 +872,7 @@ function generateInvoicePDF(order, isAdmin=false){
   const doc = new jsPDF();
   const addr = order.shipping_address || {};
   const gold = [201, 162, 75], ink = [14, 22, 48], mute = [110, 110, 110];
-  const invoiceNo = `INV-${order.order_number}`;
+  const invoiceNo = order.invoice_number || `INV-${order.order_number}`;
   const orderDate = new Date(order.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
 
   try { doc.addImage(INVOICE_LOGO_B64, 'PNG', 14, 10, 20, 20); } catch(e){ console.error('invoice logo embed failed', e); }
