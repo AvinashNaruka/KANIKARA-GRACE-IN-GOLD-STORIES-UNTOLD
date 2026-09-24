@@ -626,27 +626,42 @@ async function saveNewAddress(e){
     renderAddressList(addrs);
   } catch (err) { toast(err.message||'Could not save address', 'err'); }
 }
-function renderReceipt(addr, items, totalAmount){
+function computeCodFee(order){
+  if (!order || order.payment_method !== 'cod') return 0;
+  const reconstructed = Number(order.subtotal||0) - Number(order.discount_amount||0) + Number(order.shipping_amount||0);
+  const fee = Math.round(Number(order.total_amount||0) - reconstructed);
+  return fee > 0 ? fee : 0;
+}
+function renderReceipt(order){
   const host = $('#confirmReceipt');
-  if (!host) return;
+  if (!host || !order) return;
+  window.__lastOrderInvoice = order;
+  const addr = order.shipping_address || {};
   const addrHtml = addr ? `
     <p style="margin:4px 0">${esc(addr.full_name||'')}</p>
     <p style="margin:4px 0">${esc(addr.address_line1||'')}${addr.address_line2?', '+esc(addr.address_line2):''}</p>
     <p style="margin:4px 0">${esc(addr.city||'')}, ${esc(addr.state||'')} - ${esc(addr.pincode||'')}</p>
     <p style="margin:4px 0">Phone: ${esc(addr.phone||'')}</p>` : '<p>No address on file</p>';
-  const itemsHtml = (items||[]).map(i=>`
+  const items = order.order_items || [];
+  const itemsHtml = items.map(i=>`
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.08)">
-      <span>${esc(i.name)} × ${i.quantity}</span><span>${money(i.price)}</span>
+      <span>${esc(i.product_name)} × ${i.quantity}</span><span>${money(i.total_price)}</span>
     </div>`).join('');
+  const codFee = computeCodFee(order);
   host.innerHTML = `
     <div style="text-align:left;margin-top:24px;padding:20px;border:1px solid rgba(0,0,0,.1);border-radius:8px">
       <h3 style="margin-bottom:10px">Shipping to</h3>${addrHtml}
       <h3 style="margin:16px 0 10px">Items</h3>${itemsHtml}
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.15)">
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0"><span>Subtotal</span><span>${money(order.subtotal)}</span></div>
+        ${order.discount_amount ? `<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0"><span>Discount</span><span>−${money(order.discount_amount)}</span></div>` : ''}
+        ${codFee > 0 ? `<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0"><span>COD Charge</span><span>${money(codFee)}</span></div>` : ''}
+      </div>
       <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:12px;padding-top:12px;border-top:2px solid #221f1c">
-        <span>Total</span><span>${money(totalAmount)}</span>
+        <span>Total</span><span>${money(order.total_amount)}</span>
       </div>
     </div>
-    <button class="btn btn-line-dark no-print" style="margin-top:20px" onclick="window.print()">🖨 Print Receipt</button>`;
+    <button class="btn btn-line-dark no-print" style="margin-top:20px" onclick="generateInvoicePDF(window.__lastOrderInvoice)">📄 Download Invoice</button>`;
 }
 function selectPayMethod(m){
   state.selectedPayMethod = m;
@@ -755,7 +770,14 @@ async function placeOrder(addr, t, method, paymentStatus, paymentId = null){
         try { await api.rewardReferrerOnFirstOrder(state.session.user.id); } catch(e){ console.error(e); }
         const pointsEarned = Math.round(t.total * 0.02);
     if (pointsEarned > 0) { try { await api.addLoyaltyPoints(state.session.user.id, pointsEarned); } catch(e){ console.error(e); } }
-    renderReceipt(addr, state.cart.map(i=>({name:i.products?.name||i.name, quantity:i.quantity, price:effectivePrice(i.products||i).price*i.quantity})), t.total);
+    const orderForInvoice = {
+      ...order,
+      order_items: state.cart.map(i => {
+        const unit = effectivePrice(i.products || i).price;
+        return { product_name: i.products?.name || i.name, quantity: i.quantity, unit_price: unit, total_price: unit * i.quantity };
+      })
+    };
+    renderReceipt(orderForInvoice);
     state.cart = []; state.appliedCoupon = null; state.appliedGiftCard = null;
     renderCartBadge();
     closePayModal();
@@ -932,6 +954,8 @@ function generateInvoicePDF(order, isAdmin=false){
   sumRow('Subtotal', `Rs. ${Number(order.subtotal||0).toLocaleString('en-IN')}`);
   if (order.discount_amount) sumRow('Discount', `− Rs. ${Number(order.discount_amount).toLocaleString('en-IN')}`);
   sumRow('Shipping', Number(order.shipping_amount||0) === 0 ? 'Free' : `Rs. ${Number(order.shipping_amount).toLocaleString('en-IN')}`);
+  const codFee = computeCodFee(order);
+  if (codFee > 0) sumRow('COD Charge', `Rs. ${codFee.toLocaleString('en-IN')}`);
   doc.setDrawColor(...gold); doc.line(150, y-4, 196, y-4);
   sumRow('Total', `Rs. ${Number(order.total_amount).toLocaleString('en-IN')}`, true);
 
@@ -1181,7 +1205,7 @@ async function boot(){
     showPage('order-confirm', { push: false });
     try {
       const order = await api.getOrderByNumber(arg);
-      if (order) { renderReceipt(order.shipping_address, (order.order_items||[]).map(i=>({name:i.product_name, quantity:i.quantity, price:i.total_price})), order.total_amount); $('#confirmOrderNum').textContent = order.order_number; $('#confirmTotal').textContent = money(order.total_amount); }
+      if (order) { renderReceipt(order); $('#confirmOrderNum').textContent = order.order_number; $('#confirmTotal').textContent = money(order.total_amount); }
     } catch(e){ console.error(e); }
   }
   else {
