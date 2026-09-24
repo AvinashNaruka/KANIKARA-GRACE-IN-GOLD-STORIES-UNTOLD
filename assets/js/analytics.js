@@ -7,9 +7,9 @@
     MAX_ROWS: 15000,
     GEO_TTL_HOURS: 24,
     MIN_TIME_SPENT_SEC: 3,
-    LEAD_POPUP: true,           
-    LEAD_AFTER_PRODUCTS: 2,  
-    LEAD_AFTER_SEC: 60,          
+    LEAD_POPUP: true,         
+    LEAD_AFTER_PRODUCTS: 2,    
+    LEAD_AFTER_SEC: 60,         
     LEAD_COOLDOWN_DAYS: 7
   };
 
@@ -80,6 +80,7 @@
   var firstReferrer = ss.get('kk_ref');
   if (firstReferrer === null) { firstReferrer = document.referrer || ''; ss.set('kk_ref', firstReferrer); }
 
+  /* ---------------- geo: Vercel edge (same-origin, ad-block proof) + ipwho.is + ipapi.co fallback ---------------- */
   var IN_STATES = {AN:'Andaman and Nicobar Islands',AP:'Andhra Pradesh',AR:'Arunachal Pradesh',AS:'Assam',BR:'Bihar',CH:'Chandigarh',CG:'Chhattisgarh',CT:'Chhattisgarh',
     DD:'Daman and Diu',DH:'Dadra and Nagar Haveli and Daman and Diu',DN:'Dadra and Nagar Haveli',DL:'Delhi',GA:'Goa',GJ:'Gujarat',HR:'Haryana',HP:'Himachal Pradesh',
     JK:'Jammu and Kashmir',JH:'Jharkhand',KA:'Karnataka',KL:'Kerala',LA:'Ladakh',LD:'Lakshadweep',MP:'Madhya Pradesh',MH:'Maharashtra',MN:'Manipur',ML:'Meghalaya',
@@ -121,7 +122,7 @@
         var v = r[0], w = r[1];
         if (v || w) {
           var g = Object.assign({}, v || w);
-          if (v && w) {                                
+          if (v && w) {                                   
             if (v.country !== 'India') g.region = w.region || g.region;
             g.isp = w.isp; g.postal_code = g.postal_code || w.postal_code;
           }
@@ -205,7 +206,6 @@
     var row = baseRow(); row.event = event; row.detail = detail || null; send(row);
   }
 
-  /* ---------------- page views + time spent ---------------- */
   var lastKey = '', lastAt = 0;
   var cur = { key: null, page: null, slug: null, since: null };
   function flushTime() {
@@ -454,7 +454,7 @@
         (cache.idByVisitor[i.visitor_id] = cache.idByVisitor[i.visitor_id] || []).push(i);
         if (i.user_id) (cache.idByUser[i.user_id] = cache.idByUser[i.user_id] || []).push(i);
       });
-      try {
+      try {  
         var ids = {}; cache.rows.forEach(function (r) { if (r.user_id) ids[r.user_id] = 1; });
         ids = Object.keys(ids);
         if (ids.length && typeof api !== 'undefined' && api.adminListEmails) cache.emails = await api.adminListEmails(ids);
@@ -541,7 +541,7 @@
 
   function buildVisitors(rows) {
     var map = {}, list = [];
-    rows.forEach(function (r) {   // newest → oldest
+    rows.forEach(function (r) {  
       var v = map[r.visitor_id];
       if (!v) {
         v = map[r.visitor_id] = { id: r.visitor_id, rows: [], last: r.created_at, sessions: {}, views: 0, prodViews: 0, seconds: 0,
@@ -585,7 +585,7 @@
       v.score = Math.min(100, s);
       v.temp = v.converted ? 'Customer' : v.score >= 60 ? 'Hot' : v.score >= 30 ? 'Warm' : 'Cold';
       v.contact = v.phones.length ? 'phone' : (v.emails.length ? 'email' : 'none');
-      if (!v.geo) {   // no IP location → fall back to saved address, then delivery PIN, else explain why
+      if (!v.geo) { 
         var ad = v.user_id ? cache.addrBy[v.user_id] : null;
         if (ad && (ad.city || ad.state)) v.geo = { city: ad.city, region: ad.state, country: 'India', _src: 'saved address' };
         else if (pinState(v.pin)) v.geo = { region: pinState(v.pin), country: 'India', _src: 'delivery PIN ' + v.pin };
