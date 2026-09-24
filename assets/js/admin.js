@@ -1,4 +1,4 @@
-async function openAdmin(){
+function openAdmin(){
   if (!state.session) { toast('Please sign in first', 'err'); openAuth('login', openAdmin); return; }
   if (!state.isAdmin) { toast('Admin access only', 'err'); return; }
   $('#page-admin').classList.add('active');
@@ -37,7 +37,6 @@ async function loadAdminDashboard(){
     `<tr><td colspan="4">No orders yet</td></tr>`;
 }
 
-// ---- Products: category folder view -------------------------------------
 const adminProdState = { mode: 'folders', categoryId: null };
 
 async function loadAdminProducts(){
@@ -55,7 +54,7 @@ function toggleAdminProductView(){
 }
 function openAdminCategoryFolder(catId){
   adminProdState.mode = 'category';
-  adminProdState.categoryId = catId; // may be 'uncategorized'
+  adminProdState.categoryId = catId; 
   renderAdminProductsView();
 }
 function backToAdminFolders(){
@@ -71,7 +70,7 @@ function renderAdminProductsView(){
   const catViewEl = $('#adminProdCategoryView');
   const allViewEl = $('#adminProdAllView');
   const toggleBtn = $('#adminProdViewToggle');
-  if (!foldersEl || !catViewEl || !allViewEl) return; // markup not on this page yet
+  if (!foldersEl || !catViewEl || !allViewEl) return;
 
   foldersEl.classList.add('hide');
   catViewEl.classList.add('hide');
@@ -107,7 +106,6 @@ function renderAdminProductsView(){
     return;
   }
 
-  // folders (default) view
   if (toggleBtn) toggleBtn.textContent = 'View All';
   foldersEl.classList.remove('hide');
   const countFor = id => products.filter(p=>p.category_id===id).length;
@@ -184,7 +182,6 @@ function renderAdminProductsTable(products){
     </tr>`).join('') || `<tr><td colspan="8">No products yet. Add your first piece →</td></tr>`;
 }
 
-// ---- Category-based serial numbers: e.g. Pendant -> KP001, KP002... -----
 function categoryPrefix(cat){
   if (!cat || !cat.name) return 'KX';
   const letter = cat.name.trim().charAt(0).toUpperCase() || 'X';
@@ -203,8 +200,6 @@ function nextSerialNoForCategory(categoryId){
   return prefix + String(next).padStart(3, '0');
 }
 
-// Backfill: assign category-based serial numbers (KP001, KP002…) to products
-// that were created before this numbering scheme existed.
 async function backfillSerialNumbers(){
   const products = window.__adminProducts || [];
   const cats = window.__adminCats || [];
@@ -255,7 +250,7 @@ function updateSerialPreview(){
   const box = $('#serialPreview');
   if (!box) return;
   const isEdit = !!$('#productFormId').value;
-  if (isEdit) { box.textContent = ''; return; } // don't renumber existing products
+  if (isEdit) { box.textContent = ''; return; }
   const catId = $('#productCat').value;
   if (!catId) { box.textContent = ''; return; }
   box.textContent = 'This product will be numbered: ' + nextSerialNoForCategory(catId);
@@ -310,7 +305,7 @@ async function uploadProductImages(input){
   const uploaded = [];
   for (const original of files) {
     try {
-      const file = await compressImage(original).catch(() => original); // fall back to original if compression fails
+      const file = await compressImage(original).catch(() => original); 
       const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}-${file.name.replace(/[^a-zA-Z0-9.]+/g,'-')}`;
       const { error } = await sb.storage.from('product-images').upload(path, file, { cacheControl: '3600', upsert: false });
       if (error) throw error;
@@ -483,12 +478,39 @@ async function loadAdminOrders(){
           ${['pending','confirmed','processing','packed','shipped','out_for_delivery','delivered','cancelled','returned','refunded'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </td>
-      <td><button class="action-btn" onclick="generateInvoicePDF((window.__adminOrders||[]).find(x=>x.id==='${o.id}'), true)">📄 Download</button></td>
+      <td>
+        <button class="action-btn" onclick="generateInvoicePDF((window.__adminOrders||[]).find(x=>x.id==='${o.id}'), true)">📄 Download</button>
+        <button class="action-btn" style="margin-top:6px" onclick="openDeliveryDetails('${o.id}')">🚚 Delivery Details</button>
+      </td>
     </tr>`).join('') || `<tr><td colspan="7">No orders yet</td></tr>`;
 }
 async function adminUpdateOrderStatus(id, status){
   try { await api.adminUpdateOrderStatus(id, status); toast('Order status updated'); }
   catch (err) { toast(err.message||'Could not update order','err'); }
+}
+
+function openDeliveryDetails(orderId){
+  const order = (window.__adminOrders||[]).find(o=>o.id===orderId);
+  if (!order) return toast('Order not found', 'err');
+  const courier = prompt('Courier / shipping partner name:', order.courier_name || '');
+  if (courier === null) return; // cancelled
+  const tracking = prompt('Tracking number:', order.tracking_number || '');
+  if (tracking === null) return;
+  const url = prompt('Tracking link (optional — customer can click "Track shipment"):', order.tracking_url || '');
+  if (url === null) return;
+  saveDeliveryDetails(orderId, order.status, {
+    courier_name: courier.trim() || null,
+    tracking_number: tracking.trim() || null,
+    tracking_url: url.trim() || null
+  });
+}
+async function saveDeliveryDetails(orderId, currentStatus, details){
+  try {
+
+    await api.adminUpdateOrderStatus(orderId, currentStatus, details);
+    toast('Delivery details saved — the customer can now see them');
+    loadAdminOrders();
+  } catch (err) { toast(err.message || 'Could not save delivery details', 'err'); }
 }
 
 async function loadAdminCoupons(){
@@ -729,7 +751,6 @@ async function deleteStore(id){
   catch (err) { toast(err.message||'Could not delete','err'); }
 }
 
-// ------------------------------------------------------- press mentions ---
 async function loadAdminPress(){
   const rows = await api.adminAllPressMentions();
   window.__adminPress = rows;
