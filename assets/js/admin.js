@@ -160,7 +160,7 @@ function adminProductCardHTML(p){
       <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:6px">Stock: ${p.stock_quantity ?? 0}</div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="action-btn" style="flex:1" onclick="editProduct('${p.id}')">Edit</button>
-        <button class="action-btn" style="flex:1;color:var(--danger)" onclick="deleteProduct('${p.id}','${esc(p.name)}')">Delete</button>
+        <button class="action-btn" style="flex:1;color:var(--danger)" onclick="deleteProduct('${p.id}')">Delete</button>
       </div>
     </div>
   </div>`;
@@ -178,7 +178,7 @@ function renderAdminProductsTable(products){
       <td>${money(p.price)}</td>
       <td>${p.stock_quantity}</td>
       <td>${p.is_active ? '<span class="status-badge status-delivered">Active</span>' : '<span class="status-badge status-cancelled">Hidden</span>'}</td>
-      <td><button class="action-btn" onclick="editProduct('${p.id}')">Edit</button> <button class="action-btn" onclick="deleteProduct('${p.id}','${esc(p.name)}')">Delete</button></td>
+      <td><button class="action-btn" onclick="editProduct('${p.id}')">Edit</button> <button class="action-btn" onclick="deleteProduct('${p.id}')">Delete</button></td>
     </tr>`).join('') || `<tr><td colspan="8">No products yet. Add your first piece →</td></tr>`;
 }
 
@@ -394,7 +394,9 @@ async function saveProduct(e){
     loadAdminProducts();
   } catch (err) { toast(err.message||'Could not save product', 'err'); }
 }
-async function deleteProduct(id, name){
+async function deleteProduct(id){
+  const p = (window.__adminProducts||[]).find(x=>x.id===id);
+  const name = p ? p.name : 'this product';
   if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   try { await api.adminDeleteProduct(id); toast('Product deleted'); loadAdminProducts(); }
   catch (err) { toast(err.message||'Could not delete', 'err'); }
@@ -424,7 +426,7 @@ async function loadAdminMaterials(){
   const mats = await api.getMaterials();
   window.__adminMaterials = mats;
   $('#adminMaterialsTbl').innerHTML = mats.map(m=>`
-    <tr><td>${esc(m.name)}</td><td><button class="action-btn" style="color:var(--danger)" onclick="deleteMaterial('${m.id}','${esc(m.name)}')">Delete</button></td></tr>`).join('') || `<tr><td colspan="2">No materials yet</td></tr>`;
+    <tr><td>${esc(m.name)}</td><td><button class="action-btn" style="color:var(--danger)" onclick="deleteMaterial('${m.id}')">Delete</button></td></tr>`).join('') || `<tr><td colspan="2">No materials yet</td></tr>`;
 }
 async function addMaterial(){
   const name = $('#newMaterialName').value.trim();
@@ -432,7 +434,9 @@ async function addMaterial(){
   try { await api.adminSaveMaterial(name); $('#newMaterialName').value=''; toast('Material added'); loadAdminMaterials(); }
   catch (err) { toast(err.message||'Could not add material', 'err'); }
 }
-async function deleteMaterial(id, name){
+async function deleteMaterial(id){
+  const m = (window.__adminMaterials||[]).find(x=>x.id===id);
+  const name = m ? m.name : 'this material';
   if (!confirm(`Delete "${name}"?`)) return;
   try { await api.adminDeleteMaterial(id); toast('Material deleted'); loadAdminMaterials(); }
   catch (err) { toast(err.message||'Could not delete', 'err'); }
@@ -581,24 +585,29 @@ async function approveReview(id){
 
 async function loadAdminCustomers(){
   const rows = await api.adminAllCustomers();
+  window.__adminCustomersData = rows;
   let emails = {};
   try { emails = await api.adminListEmails(rows.map(r=>r.id)); } catch(e){ console.error(e); }
+  window.__adminCustomersEmails = emails;
   $('#adminCustomersTbl').innerHTML = rows.map(c=>`
     <tr><td>${esc(c.full_name||'—')}</td><td>${esc(c.phone||'—')}</td><td>${esc(emails[c.id]||'—')}</td><td>${c.total_orders||0}</td>
     <td>${money(c.total_spent||0)}</td><td>${c.loyalty_points||0} pts</td>
     <td><span class="status-badge ${c.role==='customer'?'status-pending':'status-delivered'}">${c.role}</span></td>
     <td>${c.role==='customer' ? `
-      <button class="action-btn" onclick="editCustomerEmail('${c.id}','${esc(emails[c.id]||'')}')">✏️ Email</button>
-      <button class="action-btn" style="color:var(--danger)" onclick="deleteCustomer('${c.id}','${esc(c.full_name||'this customer')}')">🗑 Delete</button>
+      <button class="action-btn" onclick="editCustomerEmail('${c.id}')">✏️ Email</button>
+      <button class="action-btn" style="color:var(--danger)" onclick="deleteCustomer('${c.id}')">🗑 Delete</button>
     ` : ''}</td></tr>`).join('');
 }
-async function editCustomerEmail(userId, currentEmail){
+async function editCustomerEmail(userId){
+  const currentEmail = (window.__adminCustomersEmails||{})[userId] || '';
   const newEmail = prompt('Enter new email for this customer:', currentEmail);
   if (!newEmail || newEmail === currentEmail) return;
   try { await api.adminUpdateCustomerEmail(userId, newEmail); toast('Email updated'); loadAdminCustomers(); }
   catch (err) { toast(err.message || 'Could not update email', 'err'); }
 }
-async function deleteCustomer(userId, name){
+async function deleteCustomer(userId){
+  const c = (window.__adminCustomersData||[]).find(x=>x.id===userId);
+  const name = c ? c.full_name || 'this customer' : 'this customer';
   if (!confirm(`Delete ${name}? This permanently removes their login and profile. Their past orders stay in Orders history.`)) return;
   try { await api.adminDeleteCustomer(userId); toast('Customer deleted'); loadAdminCustomers(); }
   catch (err) { toast(err.message || 'Could not delete customer', 'err'); }
