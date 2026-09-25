@@ -201,6 +201,18 @@ const api = {
     });
     const { error: itemErr } = await sb.from('order_items').insert(orderItems);
     if (itemErr) throw itemErr;
+      
+    await Promise.allSettled(items.map(async (it) => {
+      const p = it.products || it;
+      if (!p?.id) return;
+      const newStock = Math.max(0, Number(p.stock_quantity || 0) - it.quantity);
+      await sb.from('products').update({
+        stock_quantity: newStock,
+        sold_count: Number(p.sold_count || 0) + it.quantity
+      }).eq('id', p.id);
+    }));
+      
+    if (itemErr) throw itemErr;
     if (order.coupon_code) {
 
       try {
@@ -293,19 +305,6 @@ const api = {
   },
   async adminDeleteProduct(id){ await sb.from('products').delete().eq('id', id); },
   
-    async getMaterials(){
-    const { data, error } = await sb.from('materials').select('*').order('name');
-    if (error) throw error;
-    return data || [];
-  },
-  async adminSaveMaterial(name){
-    const { error } = await sb.from('materials').insert({ name: name.trim() });
-    if (error) throw error;
-  },
-  async adminDeleteMaterial(id){
-    await sb.from('materials').delete().eq('id', id);
-  },
-
     async getMaterials(){
     const { data, error } = await sb.from('materials').select('*').order('name');
     if (error) throw error;
