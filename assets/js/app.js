@@ -768,8 +768,7 @@ async function placeOrder(addr, method){
       giftCardCode: state.appliedGiftCard?.code || null
     });
     try { await api.rewardReferrerOnFirstOrder(state.session.user.id); } catch(e){ console.error(e); }
-    // Server ne jo asli order banaya, wahi dobara fetch karo (invoice/receipt me exact
-    // server-calculated price dikhana hai, browser wala estimate nahi)
+
     const order = await api.getOrderByNumber(result.order_number);
     renderReceipt(order);
     state.cart = []; state.appliedCoupon = null; state.appliedGiftCard = null;
@@ -779,7 +778,6 @@ async function placeOrder(addr, method){
     $('#confirmTotal').textContent = money(order.total_amount);
     showPage('order-confirm');
   } catch (err) { toast(err.message || 'Could not place order', 'err'); }
-}
 }
 function openPayModal(amount){
   $('#payAmount').textContent = money(amount);
