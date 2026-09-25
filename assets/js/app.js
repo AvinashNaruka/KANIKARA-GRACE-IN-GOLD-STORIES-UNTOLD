@@ -709,14 +709,14 @@ function renderCheckoutSummary(){
 async function proceedCheckout(){
   if (!$('#agreeTerms').checked) return toast('Please agree to the Terms & Refund Policy to continue', 'err');
   if (!state.selectedAddressId) return toast('Please select or add a delivery address', 'err');
-  const t = cartTotals();
+  const t = cartTotals(); // sirf display estimate — asli final price ab server (RPC) tay karega
   if (state.selectedPayMethod === 'cod') t.total += Number(state.settings?.cod_fee || 250);
   const addresses = await api.getAddresses(state.session.user.id);
   const addr = addresses.find(a=>a.id===state.selectedAddressId);
-  if (t.total <= 0 && t.giftCardUsed > 0) { await placeOrder(addr, t, 'gift_card', 'paid'); return; }
+  if (t.total <= 0 && t.giftCardUsed > 0) { await placeOrder(addr, 'gift_card'); return; }
   if (state.selectedPayMethod === 'upi') { openPayModal(t.total); return; }
   if (state.selectedPayMethod === 'payu') { payWithPayU(addr, t, 'order'); return; }
-  await placeOrder(addr, t, 'cod', 'cod_pending');
+  await placeOrder(addr, 'cod');
 }
 async function payWithPayU(addr, t, purpose = 'order', extraPayload = {}){
   try {
@@ -752,43 +752,34 @@ async function payWithPayU(addr, t, purpose = 'order', extraPayload = {}){
     form.submit();
   } catch (err) { toast(err.message || 'Could not start PayU payment', 'err'); }
 }
-async function placeOrder(addr, t, method, paymentStatus, paymentId = null){
+async function placeOrder(addr, method){
   try {
-    const order = await api.createOrder({
-      user_id: state.session.user.id,
-      status: 'pending',
-      payment_status: paymentStatus,
-      payment_method: method,
-      payment_id: paymentId,
-      subtotal: t.subtotal,
-      discount_amount: t.discount,
-      coupon_code: state.appliedCoupon?.code || null,
-      shipping_amount: t.shipping,
-      total_amount: t.total,
-      shipping_address: addr
-    }, state.cart);
-    if (state.appliedGiftCard && t.giftCardUsed > 0) {
-      try { await api.redeemGiftCardAmount(state.appliedGiftCard.id, state.appliedGiftCard.balance - t.giftCardUsed); } catch(_){}
-    }
-    await api.clearCart(state.session.user.id);
-        try { await api.rewardReferrerOnFirstOrder(state.session.user.id); } catch(e){ console.error(e); }
-        const pointsEarned = Math.round(t.total * 0.02);
-    if (pointsEarned > 0) { try { await api.addLoyaltyPoints(state.session.user.id, pointsEarned); } catch(e){ console.error(e); } }
-    const orderForInvoice = {
-      ...order,
-      order_items: state.cart.map(i => {
-        const unit = effectivePrice(i.products || i).price;
-        return { product_name: i.products?.name || i.name, quantity: i.quantity, unit_price: unit, total_price: unit * i.quantity };
-      })
-    };
-    renderReceipt(orderForInvoice);
+    const items = state.cart.map(i => ({
+      product_id: i.product_id,
+      quantity: i.quantity,
+      variant_id: i.variant_id || null,
+      variant_label: i.variant_label || null
+    }));
+    const result = await api.placeOrderRPC({
+      items,
+      shippingAddress: addr,
+      paymentMethod: method,
+      couponCode: state.appliedCoupon?.code || null,
+      giftCardCode: state.appliedGiftCard?.code || null
+    });
+    try { await api.rewardReferrerOnFirstOrder(state.session.user.id); } catch(e){ console.error(e); }
+    // Server ne jo asli order banaya, wahi dobara fetch karo (invoice/receipt me exact
+    // server-calculated price dikhana hai, browser wala estimate nahi)
+    const order = await api.getOrderByNumber(result.order_number);
+    renderReceipt(order);
     state.cart = []; state.appliedCoupon = null; state.appliedGiftCard = null;
-    renderCartBadge();
+    await refreshCart();
     closePayModal();
     $('#confirmOrderNum').textContent = order.order_number;
-    $('#confirmTotal').textContent = money(t.total);
+    $('#confirmTotal').textContent = money(order.total_amount);
     showPage('order-confirm');
   } catch (err) { toast(err.message || 'Could not place order', 'err'); }
+}
 }
 function openPayModal(amount){
   $('#payAmount').textContent = money(amount);
@@ -797,10 +788,9 @@ function openPayModal(amount){
 function closePayModal(){ $('#payModal').classList.remove('open'); }
 function copyUpiId(){ navigator.clipboard.writeText('Kanikara@upi'); toast('UPI ID copied'); }
 async function confirmPaymentDone(){
-  const t = cartTotals();
   const addresses = await api.getAddresses(state.session.user.id);
   const addr = addresses.find(a=>a.id===state.selectedAddressId);
-  await placeOrder(addr, t, 'upi', 'pending');
+  await placeOrder(addr, 'upi');
 }
 
 async function submitCustomOrder(e){
