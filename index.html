@@ -78,6 +78,9 @@
       <a href="#home" onclick="event.preventDefault();showPage('home');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Home</a>
       <a href="#shop" onclick="event.preventDefault();showPage('shop');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Shop</a>
       <a href="#custom-order" onclick="event.preventDefault();showPage('custom-order');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Custom Orders</a>
+      <a href="#gift-store" onclick="event.preventDefault();showPage('gift-store');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Gift Store</a>
+      <a href="#smart-plan" onclick="event.preventDefault();showPage('smart-plan');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Smart Plan</a>
+      <a href="#wishlist" onclick="event.preventDefault();showPage('wishlist');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Wishlist</a>
       <a href="#dashboard" onclick="event.preventDefault();showPage('dashboard');toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">My Orders</a>
       <a href="#" onclick="event.preventDefault();(state.session ? showPage('dashboard') : openAuth('login'));toggleMobileMenu()" style="color:var(--ivory);padding:10px 0;font-size:14px">Account</a>
     </nav>
@@ -612,7 +615,7 @@
     <p class="lede-light" style="max-width:none;margin-bottom:36px">Orders are usually dispatched within 2–5 business days. Delivery timelines vary by location and are shown at checkout where possible. Shipping is free on all orders unless stated otherwise. Once your order ships, you'll be able to track it from your account under "My Orders." We are not responsible for delays caused by courier partners, weather, or circumstances beyond our control.</p>
 
     <h2 class="h-section" style="font-size:24px;margin-bottom:12px">Cancellation & Refund Policy</h2>
-    <p class="lede-light" style="max-width:none">Orders can be cancelled before they are dispatched — contact us as soon as possible if you wish to cancel. Once dispatched, cancellation is not guaranteed. For prepaid orders that are cancelled or returned, refunds are processed to the original payment method within 7–10 business days. Made-to-order or customised pieces cannot be cancelled once production has started. For any issues with a delivered product, please contact us within 48 hours of delivery.</p>
+    <p class="lede-light" style="max-width:none">Orders can be cancelled before they are dispatched — contact us as soon as possible if you wish to cancel. Once dispatched, cancellation is not guaranteed. Unworn, undamaged jewellery in its original packaging can be returned within 15 days of delivery for a refund or exchange — please contact us within this window to initiate a return. For prepaid orders that are cancelled or returned, refunds are processed to the original payment method within 7–10 business days. Made-to-order or customised pieces cannot be returned or cancelled once production has started, unless the piece arrives damaged or defective.</p>
   </div>
 </div>
    
@@ -623,8 +626,13 @@
       <p>Fine gold, diamond and bridal jewellery, hand-finished by karigars in Rajasthan since generations.</p>
     </div>
     <div><h4>Shop</h4><ul id="footerCatList"></ul></div>
-    <div><h4>Company</h4><ul>
+        <div><h4>Company</h4><ul>
       <li><a href="#custom-order" onclick="event.preventDefault();showPage('custom-order')">Custom Orders</a></li>
+      <li><a href="#gift-store" onclick="event.preventDefault();showPage('gift-store')">Gift Store</a></li>
+      <li><a href="#smart-plan" onclick="event.preventDefault();showPage('smart-plan')">Smart Plan</a></li>
+      <li><a href="#corporate-gifting" onclick="event.preventDefault();showPage('corporate-gifting')">Corporate Gifting</a></li>
+      <li><a href="#store-locator" onclick="event.preventDefault();showPage('store-locator')">Store Locator</a></li>
+      <li><a href="#jewellery-care" onclick="event.preventDefault();showPage('jewellery-care')">Jewellery Care</a></li>
       <li><a href="#dashboard" onclick="event.preventDefault();showPage('dashboard')">Track Order</a></li>
       <li><a href="#wishlist" onclick="event.preventDefault();showPage('wishlist')">Wishlist</a></li>
     </ul></div>
@@ -752,12 +760,12 @@
   <input type="file" accept="video/*" onchange="uploadProductVideo(this)" style="border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
   <input id="productVideo" placeholder="https://… (auto-filled after upload)" style="margin-top:8px">
 </div>
-      <div class="field"><label>Description</label><textarea id="productDesc" rows="3"></textarea></div>
-      <div class="field">
+            <div class="field">
         <label>Tags (comma separated — powers Shop filters)</label>
         <input id="productTags" placeholder="occasion:wedding, theme:evil-eye, recipient:for-her, metal:silver, audience:her">
         <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Use "group:value" format. Common groups: occasion, theme, recipient, metal, colour, style, collection, audience (her/him — powers Gift Store).</div>
-               <div class="field">
+      </div>
+      <div class="field">
         <label>Color Variants (optional)</label>
         <div id="variantList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>
         <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px dashed var(--gold-line);padding:12px;background:var(--ivory)">
@@ -765,6 +773,8 @@
           <input id="variantColorName" placeholder="Color name e.g. Rose Gold">
           <button type="button" class="btn btn-line-dark btn-sm" onclick="addVariantRow()">+ Add</button>
         </div>
+        <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Har color add karke uske photos upload karo. Customer ko product page pe ye swatches (dots) dikhenge.</div>
+      </div>
         <div style="font-size:11.5px;color:rgba(34,31,28,.5);margin-top:5px">Har color add karke uske photos upload karo. Customer ko product page pe ye swatches (dots) dikhenge.</div>
       </div>
       </div>
