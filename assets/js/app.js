@@ -1332,8 +1332,8 @@ async function loadDashRefer(){
     const waText = encodeURIComponent(`Check out Kanikara — handcrafted gold & diamond jewellery from Jaipur! Use my link to get ₹300 off your first order: ${link}`);
     host.innerHTML = `
       <div class="dash-card" style="margin-bottom:24px">
-        <h3 style="font-family:var(--serif);font-size:22px">Refer a friend, you both earn ₹300</h3>
-        <p class="lede-light" style="margin-top:8px">Share your link — when your friend signs up and places their first order, both you and your friend will get a ₹300 discount coupon..</p>
+                <h3 style="font-family:var(--serif);font-size:22px">Refer a friend, you both earn ${money(state.settings?.referral_discount_amount || 300)}</h3>
+        <p class="lede-light" style="margin-top:8px">Share your link — when your friend signs up and places their first order, both you and your friend will get a ${money(state.settings?.referral_discount_amount || 300)} discount coupon.</p>
         <div class="field" style="margin-top:18px">
           <label>Your referral link</label>
           <div style="display:flex;gap:10px">
@@ -1351,7 +1351,7 @@ async function loadDashRefer(){
             <span class="status-badge status-${r.status==='completed'?'delivered':'pending'}">${r.status==='completed'?'Reward earned':'Signed up · order pending'}</span>
           </div>
           ${r.status==='completed' && r.referrer_coupon_code ? `<p style="margin-top:8px;font-size:13px;color:var(--success);font-weight:700">Your coupon: ${esc(r.referrer_coupon_code)}</p>` : ''}
-        </div>`).join('') : `<p class="lede-light">Since you didn't include the link in your message</p>`}
+        </div>`).join('') : `<p class="lede-light">No referrals yet — share your link above to start earning.</p>`}
     `;
   } catch (err) { host.innerHTML = `<p class="lede-light">Could not load referral info.</p>`; console.error(err); }
 }
