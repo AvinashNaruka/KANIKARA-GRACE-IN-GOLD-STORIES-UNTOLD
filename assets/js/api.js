@@ -548,4 +548,17 @@ async recordReferralSignup(referrerCode, referredId, referredEmail){
 async rewardReferrerOnFirstOrder(userId){
   try { await sb.rpc('reward_referrer_on_first_order', { p_user_id: userId }); } catch(e){ console.error(e); }
 },
+
+async placeOrderRPC({ items, shippingAddress, paymentMethod, couponCode, giftCardCode }){
+  const { data, error } = await sb.rpc('place_order_rpc', {
+    items,
+    shipping_address: shippingAddress,
+    payment_method: paymentMethod,
+    coupon_code: couponCode || null,
+    gift_card_code: giftCardCode || null
+  });
+  if (error) throw error;
+  return data; 
+},
+  
 };
