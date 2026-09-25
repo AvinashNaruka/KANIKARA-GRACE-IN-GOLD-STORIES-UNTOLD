@@ -80,10 +80,10 @@ const api = {
     Object.keys(groups).forEach(g => out[g] = Array.from(groups[g]).sort());
     return out;
   },
-  async getProductBySlug(slug){
+    async getProductBySlug(slug){
     const { data, error } = await sb.from('products').select('*, categories(name, slug)').eq('slug', slug).maybeSingle();
     if (error) throw error;
-    if (data) sb.from('products').update({ views_count: (data.views_count || 0) + 1 }).eq('id', data.id).then(()=>{});
+    if (data) sb.rpc('increment_product_views', { p_id: data.id }).then(()=>{});
     return data;
   },
   async getRelatedProducts(categoryId, excludeId){
