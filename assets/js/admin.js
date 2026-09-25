@@ -615,7 +615,7 @@ async function deleteCustomer(userId){
 
 async function loadAdminSettings(){
   const settings = await api.getSettings();
-  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address'];
+    const fields = ['cod_fee','announcement_text','whatsapp_number','store_phone','store_email','store_address'];
   $('#adminSettingsForm').innerHTML = fields.map(k=>`
     <div class="field"><label>${k.replace(/_/g,' ')}</label><input id="set_${k}" value="${esc(settings[k]||'')}"></div>`).join('') +
     `<div class="field" style="grid-column:1/-1;border-top:1px solid var(--line-light);padding-top:16px;margin-top:4px">
@@ -642,7 +642,7 @@ function toLocalDatetimeValue(iso){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 async function saveAllSettings(){
-  const fields = ['gold_rate_22k','gold_rate_24k','silver_rate','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag','flash_sale_discount_percent','referral_discount_amount','referral_min_order'];
+  const fields = ['cod_fee','announcement_text','whatsapp_number','store_phone','store_email','store_address','flash_sale_title','flash_sale_tag','flash_sale_discount_percent','referral_discount_amount','referral_min_order'];
   try {
     const endVal = $('#set_flash_sale_end').value;
     await Promise.all([
