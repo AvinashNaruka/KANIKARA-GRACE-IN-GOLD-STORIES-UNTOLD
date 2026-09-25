@@ -507,9 +507,13 @@ async function loadProductPage(slug){
         <div class="pd-qty">
           <div class="qty-box"><button onclick="pdQty(-1)">−</button><span id="pdQtyVal">1</span><button onclick="pdQty(1)">+</button></div>
         </div>
-        <div class="pd-actions">
+                <div class="pd-actions">
+          ${p.stock_quantity > 0 ? `
           <button class="btn btn-line-dark btn-block" onclick="addToCart('${p.id}', pdQtyGet(), getSelectedVariant())">Add to Bag</button>
           <button class="btn btn-gold btn-block" onclick="buyNow('${p.id}', getSelectedVariant())">Buy Now</button>
+          ` : `
+          <button class="btn btn-line-dark btn-block" disabled>Out of Stock</button>
+          `}
         </div>
         <div style="margin-top:14px;display:flex;gap:16px">
           <button class="btn-ghost" onclick="toggleWishlist('${p.id}')">${state.wishlistIds.has(p.id)?'♥ In Wishlist':'♡ Add to Wishlist'}</button>
@@ -684,7 +688,7 @@ async function applyCoupon(){
 }
 function renderCheckoutSummary(){
   const t = cartTotals();
-  const codFee = state.selectedPayMethod === 'cod' ? 250 : 0;
+  const codFee = state.selectedPayMethod === 'cod' ? Number(state.settings?.cod_fee || 250) : 0;
   $('#coItems').innerHTML = state.cart.map(i=>`
     <div class="mini-row">
       <img src="${esc((i.products?.images||[])[0]||placeholderImg())}">
@@ -706,7 +710,7 @@ async function proceedCheckout(){
   if (!$('#agreeTerms').checked) return toast('Please agree to the Terms & Refund Policy to continue', 'err');
   if (!state.selectedAddressId) return toast('Please select or add a delivery address', 'err');
   const t = cartTotals();
-  if (state.selectedPayMethod === 'cod') t.total += 250;
+  if (state.selectedPayMethod === 'cod') t.total += Number(state.settings?.cod_fee || 250);
   const addresses = await api.getAddresses(state.session.user.id);
   const addr = addresses.find(a=>a.id===state.selectedAddressId);
   if (t.total <= 0 && t.giftCardUsed > 0) { await placeOrder(addr, t, 'gift_card', 'paid'); return; }
