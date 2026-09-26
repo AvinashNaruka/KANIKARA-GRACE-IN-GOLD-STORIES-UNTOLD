@@ -182,46 +182,21 @@ const api = {
     return { valid: true, coupon: data, discount: Math.round(discount) };
   },
   
-    async createOrder(order, items){
-    const { data: created, error } = await sb.from('orders').insert(order).select().single();
-    if (error) throw error;
-    const orderItems = items.map(it => {
-      const unit = (typeof effectivePrice === 'function') ? effectivePrice(it.products || it).price : (it.products?.price ?? it.price);
-      return {
-        order_id: created.id,
+    async placeOrderRPC({ items, shippingAddress, paymentMethod, couponCode, giftCardCode }){
+    const { data, error } = await sb.rpc('place_order', {
+      p_items: items.map(it => ({
         product_id: it.product_id,
-        product_name: it.products?.name || it.name,
-        product_image: (it.products?.images || it.images || [])[0] || null,
         quantity: it.quantity,
-        unit_price: unit,
-        total_price: unit * it.quantity,
         variant_id: it.variant_id || null,
         variant_label: it.variant_label || null
-      };
+      })),
+      p_shipping_address: shippingAddress,
+      p_payment_method: paymentMethod,
+      p_coupon_code: couponCode || null,
+      p_gift_card_code: giftCardCode || null
     });
-    const { error: itemErr } = await sb.from('order_items').insert(orderItems);
-    if (itemErr) throw itemErr;
-      
-    await Promise.allSettled(items.map(async (it) => {
-      const p = it.products || it;
-      if (!p?.id) return;
-      const newStock = Math.max(0, Number(p.stock_quantity || 0) - it.quantity);
-      await sb.from('products').update({
-        stock_quantity: newStock,
-        sold_count: Number(p.sold_count || 0) + it.quantity
-      }).eq('id', p.id);
-    }));
-      
-    if (itemErr) throw itemErr;
-    if (order.coupon_code) {
-
-      try {
-        const { data: c } = await sb.from('coupons').select('id, used_count').eq('code', order.coupon_code).maybeSingle();
-        if (c) await sb.from('coupons').update({ used_count: (c.used_count || 0) + 1 }).eq('id', c.id);
-        if (c) await sb.from('coupon_redemptions').insert({ coupon_id: c.id, user_id: order.user_id, order_id: created.id });
-      } catch (_) { /* ignore */ }
-    }
-    return created;
+    if (error) throw error;
+    return data;
   },
     async cancelOrder(orderId){
     const { error } = await sb.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
